@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,8 +52,15 @@ class FlightTrackRepositoryTest {
 
     @Test
     void savingAgainWithAnEndTimeUpdatesTheExistingRow() {
+        // Truncated to microseconds because that's the real precision TIMESTAMP WITH TIME ZONE
+        // stores - OffsetDateTime.now() carries nanosecond precision on this JVM, so comparing an
+        // untruncated value against one that's been through a save/load round trip is intrinsically
+        // flaky: it only fails when now()'s last three nanosecond digits aren't already zero, which
+        // happens most of the time but not always. Flight-track timestamps never need sub-microsecond
+        // precision in practice, so truncating the test's expectation to match what actually survives
+        // the round trip is the correct fix, not a workaround.
         FlightTrackId id = FlightTrackId.random();
-        OffsetDateTime startedAt = OffsetDateTime.now();
+        OffsetDateTime startedAt = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
         repository.save(new FlightTrack(id, pilotId, startedAt, null, "[]"));
 
         OffsetDateTime endedAt = startedAt.plusMinutes(45);

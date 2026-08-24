@@ -1,5 +1,6 @@
--- Core pilot/auth schema, consolidated fresh rather than replaying things' incremental history -
--- this is a new repo, so there's no prior deployed shape to stay compatible with yet.
+-- Core pilot/auth schema, written fresh as one consolidated migration rather than the incremental
+-- history a schema like this typically accumulates over time - this is a new repo, so there's no
+-- prior deployed shape to stay compatible with yet.
 
 CREATE TABLE pilot (
     id          UUID          PRIMARY KEY,

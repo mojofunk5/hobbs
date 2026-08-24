@@ -7,9 +7,9 @@ import java.util.Optional;
 
 /**
  * Thin orchestration shell over FlightEntryRepository/AircraftRepository - no business logic of
- * its own yet, same "thin service, rich domain" shape as things' Games/Pilots. Deriving a draft
- * entry from a FlightTrack (landing detection, night-time-from-sunset-tables, etc.) is future work
- * and deliberately not here - see CLAUDE.md.
+ * its own yet, deliberately: wiring belongs here, behaviour belongs on the domain objects
+ * themselves. Deriving a draft entry from a FlightTrack (landing detection,
+ * night-time-from-sunset-tables, etc.) is future work and deliberately not here - see CLAUDE.md.
  */
 public class Logbook {
 

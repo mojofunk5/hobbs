@@ -11,8 +11,10 @@ is a second, self-hosted copy that's much harder to lose.
 
 ## Running locally
 
-Schema migrations are a separate, explicit step from starting the server (see `things`' own README
-for the reasoning - this repo follows the same pattern). Run `migrate` once before the first run
+Schema migrations are a separate, explicit step from starting the server, not an implicit side effect
+of booting - a routine restart with zero schema changes shouldn't re-run Flyway, and a new migration
+shouldn't land silently at whatever moment the app happens to restart, with no chance to review,
+sequence, or roll it back separately from the code deploy. Run `migrate` once before the first run
 against a fresh database, and again any time a new migration is added:
 
 ```bash
@@ -42,25 +44,19 @@ build) and its own Caddy compose stack are the planned frontend - not built yet.
 ./gradlew test jacocoTestReport
 ```
 
-248 tests, 94% instruction / 84% branch coverage: the auth/session/referral-code/admin/password-reset
-subsystem carried over from `things` (both unit tests and most of `things`' integration-test
-scenarios ported and renamed the same way as the production code), plus new tests for the flight
-domain - `LogbookTest` (mocked repositories), `AircraftRepositoryTest`, `FlightEntryRepositoryTest`,
-`FlightTrackRepositoryTest`, `SimulatorSessionRepositoryTest` (real H2 via Flyway, same pattern as
-`PilotRepositoryTest`), value-object tests (`PilotTest`, `AircraftTest`, `FlightEntryTest`,
-`FlightTrackTest`, `SimulatorSessionTest`), `AppConfigTest`, and `HobbsApplicationIntegrationTest`
-(full Javalin+H2 stack driven through a new `HobbsClient`, covering register/login, admin/referral-
-code flows, and aircraft/flight-entry CRUD including the 401/403/404 auth-boundary cases).
+248 tests, 94% instruction / 84% branch coverage: full coverage of the auth/session/referral-code/
+admin/password-reset subsystem (unit tests plus an end-to-end `HobbsApplicationIntegrationTest`
+covering register/login, admin/referral-code flows, and the 401/403/404 auth-boundary cases), plus
+tests for the flight domain - `LogbookTest` (mocked repositories), `AircraftRepositoryTest`,
+`FlightEntryRepositoryTest`, `FlightTrackRepositoryTest`, `SimulatorSessionRepositoryTest` (real H2
+via Flyway), value-object tests (`PilotTest`, `AircraftTest`, `FlightEntryTest`, `FlightTrackTest`,
+`SimulatorSessionTest`), and `AppConfigTest`.
 
-`RateLimitRepositoryTest` uses an injectable `Clock` (added to `RateLimitRepository` itself, same fix
-applied to `things`) rather than the real wall clock - the fixed-window rate limiter's window is "the
-current second", so asserting against real time was intrinsically flaky whenever a second ticked over
-mid-test.
+`RateLimitRepositoryTest` uses an injectable `Clock` on `RateLimitRepository` rather than the real
+wall clock - the fixed-window rate limiter's window is "the current second", so asserting against
+real time was intrinsically flaky whenever a second ticked over mid-test.
 
 ## Architecture
-
-Same conventions as `~/projects/source/things` (a Javalin party-game backend) - see that repo's
-README/CLAUDE.md for the full rationale. In short:
 
 - **Layered, inside-out dependencies**: `endpoint` → `mapper` → `dto`, `endpoint` → `domain`. The
   domain has no knowledge of HTTP, JSON, or persistence.
@@ -73,17 +69,16 @@ README/CLAUDE.md for the full rationale. In short:
 
 ### Auth
 
-Carried over from `things` near-verbatim, `Player` renamed to `Pilot` throughout (the account holder
-*is* the pilot who owns the logbook here, so the concept maps directly): session-based auth
-(`Bearer <sessionId>`), admin bootstrap on first run, and registration gated behind an admin-issued,
-single-use, email-scoped referral code. Public repo, public app, but registration is deliberately
-hard to come by - see the parent project's notes on why.
+Session-based auth (`Bearer <sessionId>`), an admin bootstrap on first run (a one-time code logged to
+the server console when no admin exists yet), and registration gated behind an admin-issued,
+single-use, email-scoped referral code with its own TTL. Public repo, public app - but registration
+is deliberately hard to come by, so that being open source doesn't mean being open to sign-ups.
 
 ## Domain model
 
 Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
 
-- **Pilot** - the account holder / logbook owner (`pilot` table, same shape as `things`' `player`)
+- **Pilot** - the account holder / logbook owner
 - **Aircraft** - registration, make, model, engine category. Shared across pilots, not scoped to one
   account (a club trainer only needs registering once)
 - **FlightEntry** - one row of the logbook: date, departure/arrival (place + time), PIC name, and

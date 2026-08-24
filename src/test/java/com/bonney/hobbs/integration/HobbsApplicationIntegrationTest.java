@@ -48,10 +48,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Exercises the full stack (real Javalin server, in-memory H2 PostgreSQL-mode database) end to end
- * via HobbsClient, the same pattern as things' ThingsApplicationIntegrationTest. Most of the
- * auth/pilot/admin scenarios below were ported directly from that file (renamed the same way as the
- * production code) since that subsystem is carried over near-verbatim; the aircraft/flight-entry
- * scenarios are new, covering this repo's actual additions.
+ * via HobbsClient. Covers the auth/pilot/admin subsystem (registration, login, referral codes,
+ * password reset, admin pilot management) as well as the aircraft/flight-entry endpoints.
  */
 class HobbsApplicationIntegrationTest {
 

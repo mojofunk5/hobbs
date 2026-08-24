@@ -178,8 +178,8 @@ public class HobbsApplication {
 
     /**
      * Runs pending Flyway migrations and exits, without starting the server. Schema changes must
-     * always be their own deliberate deploy step, never an implicit side effect of the app booting
-     * (mirrors things' CLAUDE.md rule) - a routine restart with zero schema changes shouldn't re-run
+     * always be their own deliberate deploy step, never an implicit side effect of the app booting -
+     * a routine restart with zero schema changes shouldn't re-run
      * Flyway, and a new migration shouldn't land silently at whatever moment the app happens to
      * restart, with no chance to review, sequence, or roll it back separately from the code deploy.
      */
