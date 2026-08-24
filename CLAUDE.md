@@ -13,6 +13,17 @@ This file provides guidance to Claude Code when working with code in this reposi
   every other open PR each time one merges.
 - **Always run the tests after a code change.** `./gradlew test` before considering a change
   complete.
+- **Keep dependencies current as a matter of course.** `./gradlew dependencyUpdates` (see Dependency
+  Freshness Check below) reports anything behind its latest stable version; CI runs it on every push,
+  PRs included, and uploads the result as an artifact each time - so it's visible during review, not
+  just after landing on `master`. When that report shows something outdated - whether noticed from
+  the CI artifact or from running the check locally - bump it rather than leaving it to accumulate; a
+  small, mechanical version bump is cheap now and gets riskier the longer it's deferred. Batch
+  several trivial bumps into one PR; anything with a real migration risk (a major version, a noted
+  breaking change) can be its own PR instead. If a specific dependency genuinely shouldn't be bumped
+  yet, don't just skip it silently - record why with a version constraint (`reject(...)` + `because`)
+  per `build.gradle`'s documented example, so the reason is visible to the next person and the report
+  stops re-flagging it.
 - **Use the narrowest interface that fits.** `Map`/`List`/`Collection` rather than concrete
   implementations, unless the class genuinely needs the wider API.
 - **Never delete a branch, local or remote - no exceptions, not even a merged one, not even
@@ -42,6 +53,14 @@ Schema migrations are a separate, explicit step from starting the server:
 java -cp hobbs-0.0.1-SNAPSHOT-all.jar com.bonney.hobbs.HobbsApplication migrate
 java -cp hobbs-0.0.1-SNAPSHOT-all.jar com.bonney.hobbs.HobbsApplication 8080
 ```
+
+### Dependency Freshness Check
+
+```bash
+./gradlew dependencyUpdates   # report everything (and the Gradle wrapper) behind its latest stable version
+```
+
+Backed by [gradle-versions-plugin](https://github.com/ben-manes/gradle-versions-plugin) (`build.gradle`'s `dependencyUpdates` config) - a community plugin, not an official Gradle one, but the de facto standard for this. Pre-release candidates (alphas/betas/RCs/milestones) are filtered out of the report unless the pinned version is already a pre-release itself - see the `isNonStable` snippet's comment for the Guava `-jre` carve-out. Informational only, not wired into `check`/`build` - a new upstream release can't fail CI on its own. `outputFormatter = 'plain,json'` writes both formats to `build/dependencyUpdates/`. CI runs it on every push (PRs included, so it's visible during review), uploads `report.txt` as a build artifact, and separately parses `report.json` with `jq` into a markdown table appended to the run's job summary (see Working Practices above for the standing rule on acting on it) - so nobody has to download an artifact just to see what's outdated. A dependency deliberately not being bumped yet gets a documented `constraints { ... reject(...) because '...' }` block (example in `build.gradle`) rather than being silently left to keep nagging the report.
 
 ## Package Layout
 

@@ -3,6 +3,7 @@ plugins {
     id 'jacoco'
     id 'nu.studer.jooq' version '10.2.1'
     id 'com.gradleup.shadow' version '9.6.1'
+    id 'io.github.ben-manes.versions' version '0.61.0'
 }
 
 group = 'com.bonney'
@@ -89,6 +90,48 @@ shadowJar {
 test {
     useJUnitPlatform()
 }
+
+// `./gradlew dependencyUpdates` reports every dependency (and the Gradle wrapper itself) that's
+// behind its latest available version - major, minor, or patch. Informational only, not wired into
+// `check`/`build`, since a new release landing shouldn't fail CI on its own; run it manually or read
+// its CI summary and open an upgrade PR when something's worth bumping.
+//
+// isNonStable() rejects pre-release candidates (alphas/betas/RCs/milestones) so a library's own
+// pre-release noise doesn't get flagged as "newer" against our deliberately-pinned stable version -
+// but only when the *current* pinned version is itself stable. Guava's releases are permanently
+// suffixed (e.g. "33.7.1-jre"), so without that carve-out every guava candidate would read as
+// unstable and newer guava versions would never be reported. Recommended snippet from the plugin's
+// own README (see "Filtering unstable versions").
+def isNonStable = { String version ->
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { version.toUpperCase().contains(it) }
+    def regex = /^[0-9,.v-]+(-r|-jre|-android)?$/
+    return !stableKeyword && !(version ==~ regex)
+}
+
+tasks.named('dependencyUpdates').configure {
+    checkConstraints = true
+    rejectVersionIf {
+        (isNonStable(candidate.version) && !isNonStable(currentVersion)) || !satisfiesDeclaredBound
+    }
+    // "plain" (the default) stays for the human-readable artifact CI uploads; "json" is parsed by a
+    // CI step to render the result as a markdown table in the job summary, instead of something you
+    // have to download an artifact to read.
+    outputFormatter = 'plain,json'
+}
+
+// `checkConstraints` above means a genuine "we're deliberately not upgrading this yet" case (a
+// breaking change we haven't migrated to, a transitive conflict, etc.) can be recorded as a
+// constraint here instead of just silently letting the report nag forever - it drops out of
+// dependencyUpdates' "later milestone versions" list, and the `because` reason is preserved and
+// visible via `./gradlew dependencyInsight --dependency <name>`. Not used anywhere in this project
+// today; example shape if/when it's needed:
+//
+// constraints {
+//     implementation('org.example:some-library') {
+//         version { reject('(4.2.0,)') }
+//         because 'v4.3.0 removes the deprecated Foo API we still depend on - revisit after JIRA-1234'
+//     }
+// }
 
 jacoco {
     toolVersion = '0.8.13'

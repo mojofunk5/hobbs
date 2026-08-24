@@ -27,6 +27,57 @@ jobs:
       - name: Build and test
         run: ./gradlew test jacocoTestReport
 
+      # Informational only - never fails the build (see build.gradle's dependencyUpdates config for
+      # why). Runs on every push, PRs included - a reviewer benefits from seeing what's outdated
+      # just as much as anyone looking at master, and it's cheap (a few seconds).
+      - name: Check dependency freshness
+        run: ./gradlew dependencyUpdates
+
+      - name: Upload dependency freshness report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dependency-updates-report
+          path: build/dependencyUpdates/report.txt
+
+      # Renders the same result the artifact above holds, but inline in the run's summary page -
+      # nobody has to download and open a file just to see what's outdated. Parses the JSON report
+      # (build.gradle's outputFormatter = 'plain,json') rather than the plain-text one, which isn't
+      # structured enough to turn into a table without fragile line-scraping.
+      - name: Add dependency freshness to job summary
+        if: always()
+        run: |
+          {
+            echo "## Dependency Freshness"
+            count=$(jq '.outdated.count' build/dependencyUpdates/report.json)
+            if [ "$count" -eq 0 ]; then
+              echo "All dependencies are on their latest stable version. :white_check_mark:"
+            else
+              plural=$([ "$count" = 1 ] && echo "dependency is" || echo "dependencies are")
+              echo "$count $plural behind their latest stable version:"
+              echo
+              echo "| Dependency | Current | Latest |"
+              echo "| --- | --- | --- |"
+              jq -r '.outdated.dependencies[] | "| \(.group):\(.name) | \(.version) | \(.available.release // .available.milestone // .available.integration) |"' build/dependencyUpdates/report.json
+            fi
+            gradleUpdate=$(jq -r '.gradle.current.isUpdateAvailable' build/dependencyUpdates/report.json)
+            if [ "$gradleUpdate" = "true" ]; then
+              running=$(jq -r '.gradle.running.version' build/dependencyUpdates/report.json)
+              latest=$(jq -r '.gradle.current.version' build/dependencyUpdates/report.json)
+              echo
+              echo "Gradle wrapper: \`$running\` → \`$latest\` available."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Written ourselves rather than via the action's own job_summary_text input - that input goes
+      # through @actions/core's summary.addRaw() with no guaranteed newline before the table markup
+      # that follows it, so "##" doesn't reliably parse as a real markdown heading and ends up a
+      # different (wrong) weight next to the Dependency Freshness heading above it. Writing it exactly
+      # the same way as that heading guarantees they render identically.
+      - name: Add Test Results heading to job summary
+        if: always()
+        run: echo "## Test Results" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Publish test report
         uses: mikepenz/action-junit-report@v6
         if: always()
