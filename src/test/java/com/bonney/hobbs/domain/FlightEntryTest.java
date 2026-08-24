@@ -1,0 +1,68 @@
+package com.bonney.hobbs.domain;
+
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class FlightEntryTest {
+
+    @Test
+    void equalityIsBasedOnIdAlone() {
+        FlightEntryId id = FlightEntryId.random();
+        FlightEntry a = anEntry(id, null);
+        FlightEntry b = anEntry(id, FlightTrackId.random());
+
+        assertThat(a.equals(b), is(true));
+        assertThat(a.hashCode(), is(b.hashCode()));
+    }
+
+    @Test
+    void entriesWithDifferentIdsAreNotEqual() {
+        FlightEntry a = anEntry(FlightEntryId.random(), null);
+        FlightEntry b = anEntry(FlightEntryId.random(), null);
+
+        assertThat(a.equals(b), is(false));
+    }
+
+    @Test
+    void notEqualToNullOrADifferentType() {
+        FlightEntry entry = anEntry(FlightEntryId.random(), null);
+
+        assertThat(entry.equals(null), is(false));
+        assertThat(entry.equals("not an entry"), is(false));
+    }
+
+    @Test
+    void negativeTotalMinutesAreRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new FlightEntry(FlightEntryId.random(),
+                PilotId.random(), AircraftId.random(), null, LocalDate.now(), "EGCM", OffsetDateTime.now(),
+                "EGCM", OffsetDateTime.now(), "Self", 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
+    }
+
+    @Test
+    void flightTrackIdIsEmptyWhenManuallyEntered() {
+        FlightEntry entry = anEntry(FlightEntryId.random(), null);
+
+        assertThat(entry.getFlightTrackId(), is(Optional.empty()));
+    }
+
+    @Test
+    void flightTrackIdIsPresentWhenDerivedFromARecording() {
+        FlightTrackId trackId = FlightTrackId.random();
+        FlightEntry entry = anEntry(FlightEntryId.random(), trackId);
+
+        assertThat(entry.getFlightTrackId(), is(Optional.of(trackId)));
+    }
+
+    private FlightEntry anEntry(FlightEntryId id, FlightTrackId flightTrackId) {
+        return new FlightEntry(id, PilotId.random(), AircraftId.random(), flightTrackId, LocalDate.now(),
+                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), "Self",
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+    }
+}

@@ -1,0 +1,12 @@
+target/
+.idea/
+pom.xml.versionsBackup
+*.iml
+.gradle/
+build/
+.claude/
+*.pid
+*.db
+*.log
+logs/
+.env

@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: hobbs
+    # Self-signed cert generated once into postgres-certs by the wrapper entrypoint below (idempotent -
+    # skips generation if already present), so the app can connect with sslmode=require. No real CA
+    # makes sense for a same-host internal Docker network - the point is encrypting the wire, not
+    # verifying server identity.
+    entrypoint: ["/postgres-ssl-entrypoint.sh"]
+    # shared_buffers/max_connections are tuned down accordingly in postgres-ssl-entrypoint.sh (~2x
+    # headroom over HikariCP's default 10-connection pool, not the stock default of 100) - real usage
+    # today is ~65MB untuned, so this leaves comfortable margin without over-committing the VPS.
+    mem_limit: 128m
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-certs:/certs
+      - ./docker/postgres-ssl-entrypoint.sh:/postgres-ssl-entrypoint.sh:ro
+
+  app:
+    image: ghcr.io/mojofunk5/hobbs:latest
+    build: .
+    restart: unless-stopped
+    # Paired with the Dockerfile's JAVA_TOOL_OPTIONS: 128m heap + code cache + direct memory caps sum
+    # to ~160m, but metaspace is deliberately uncapped there (a first attempt at capping it crashed
+    # with a genuine OutOfMemoryError under real traffic - see the Dockerfile comment), so this is the
+    # only actual ceiling on metaspace growth, not just a margin above a fully-summed target. Verified
+    # empirically under real request traffic (not just an idle boot check), settling around 180-190MiB
+    # for registration/login/game-creation traffic. Separately, the JVM's large heap reservations get
+    # eagerly promoted to 2MB transparent huge pages under THP=always, inflating committed memory well
+    # past the sum of the explicit caps - confirmed present on the local Docker Desktop test VM and
+    # confirmed absent (THP=madvise, the Ubuntu default) on the real VPS via `cat
+    # /sys/kernel/mm/transparent_hugepage/enabled` on both, so real production usage should run cooler
+    # than the local test numbers, not hotter. A hard cap either way (no swap on the VPS) - if it's
+    # ever exceeded, restarting loudly beats silently starving other containers on the same box.
+    mem_limit: 384m
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/hobbs?sslmode=require
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # Caddy is always in front (it now lives in its own stack, in the hobbs-ui repo, reachable via
+      # the shared hobbs-net network below), and the app has no published port of its own - nothing
+      # else can reach it directly.
+      TRUST_PROXY: "true"
+      # Defaults to off so a fresh deploy is safe without touching .env; opt back in per-environment
+      # by setting DOCS_ENABLED=true there.
+      DOCS_ENABLED: ${DOCS_ENABLED:-false}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+    # Bind mount, not a named volume - a named volume lives under Docker's own storage
+    # (/var/lib/docker/volumes/hobbs_app-logs/_data), invisible from the repo checkout at
+    # /opt/hobbs where everything else on the VPS is browsable. This lands logs at
+    # /opt/hobbs/logs/{hobbs,gc}.log instead - directly `tail`-able over SSH, no `docker exec`
+    # required. Also survives `docker compose down -v`, unlike a named volume.
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      # "default" keeps this on the same network as postgres; hobbs-net is external and shared with
+      # hobbs-ui's own compose stack, so its Caddy container can still reach this one by service name.
+      - default
+      - hobbs-net
+
+networks:
+  hobbs-net:
+    external: true
+
+volumes:
+  postgres-data:
+  postgres-certs:

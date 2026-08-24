@@ -1,0 +1,133 @@
+name: Java CI with Gradle
+
+on:
+  push:
+
+permissions:
+  contents: write
+  checks: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build and test
+        run: ./gradlew test jacocoTestReport
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v6
+        if: always()
+        with:
+          report_paths: build/test-results/test/**/*.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jacoco-coverage-report
+          path: build/reports/jacoco/test/html
+
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/master'
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+
+      # Retries with a rebase+push loop because two merges landing on master close together race
+      # here: both jobs check out the same base commit, so whichever finishes second gets a plain
+      # `git push` rejected as non-fast-forward once the first job's badge commit has landed. This
+      # step is also `continue-on-error` - a stale badge is cosmetic and must never block `deploy`
+      # (which `needs: build`), a real incident that happened when PR #78's merge lost this race.
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/master'
+        continue-on-error: true
+        run: |
+          if [[ $(git status --porcelain .github/badges) ]]; then
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git add .github/badges
+            git commit -m "Update coverage badge [skip ci]"
+            for i in 1 2 3; do
+              git push && break
+              git fetch origin master
+              git rebase origin/master
+            done
+          fi
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      # docker-compose.yml and Caddyfile live on the VPS too (Compose/Caddy read them locally, not
+      # from the image), so they need to be kept in sync on every deploy, not just the image itself -
+      # otherwise a change to either silently never takes effect in production.
+      #
+      # The image is private, but the deploy always goes through this job, so there's no need for a
+      # long-lived pull credential on the VPS - it authenticates with this job's own short-lived
+      # GITHUB_TOKEN over SSH, then logs out immediately after.
+      - name: Deploy to VPS
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          mkdir -p "$HOME/.ssh"
+          echo "$DEPLOY_KEY" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+          SSH_OPTS=(-i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=accept-new)
+          scp "${SSH_OPTS[@]}" docker-compose.yml root@213.171.213.90:/opt/hobbs/
+          # docker-compose.yml bind-mounts docker/postgres-ssl-entrypoint.sh into the postgres
+          # container - that folder has to land on the VPS too, or Compose silently creates an empty
+          # directory at the missing bind-mount source and postgres crash-loops trying to exec it.
+          scp -r "${SSH_OPTS[@]}" docker root@213.171.213.90:/opt/hobbs/
+          # shellcheck disable=SC2029  # deliberate: expand locally, the remote host has no GHCR_TOKEN/GHCR_USER of its own
+          #
+          # Caddy now lives in its own compose stack in the hobbs-ui repo (moved out to stop frontend-
+          # serving changes needing a full backend build/deploy) - nothing to reload here any more.
+          #
+          # Migrations run as their own explicit step against the new image, before the long-running
+          # app container is recreated - not implicitly on every boot. `docker compose run --rm` uses
+          # a one-off container (removed after) with the same image/env as the real service, so a
+          # pending migration is applied and reviewable as its own deploy step, deliberately sequenced
+          # ahead of the code that depends on it, rather than landing silently at whatever moment the
+          # app happens to restart.
+          ssh "${SSH_OPTS[@]}" root@213.171.213.90 \
+            "echo '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USER' --password-stdin && cd /opt/hobbs && docker compose pull app && docker compose run --rm app migrate && docker compose up -d app && docker logout ghcr.io"

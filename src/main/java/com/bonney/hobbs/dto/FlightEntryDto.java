@@ -1,0 +1,167 @@
+package com.bonney.hobbs.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.javalin.openapi.OpenApiName;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@OpenApiName("FlightEntry")
+public class FlightEntryDto {
+
+    private final UUID id;
+    private final UUID aircraftId;
+    private final UUID flightTrackId;
+    private final LocalDate date;
+    private final String departurePlace;
+    private final OffsetDateTime departureTime;
+    private final String arrivalPlace;
+    private final OffsetDateTime arrivalTime;
+    private final String picName;
+    private final int singleEngineMinutes;
+    private final int multiEngineMinutes;
+    private final int totalMinutes;
+    private final int nightMinutes;
+    private final int ifrMinutes;
+    private final int crossCountryMinutes;
+    private final int picMinutes;
+    private final int coPilotMinutes;
+    private final int dualMinutes;
+    private final int instructorMinutes;
+    private final int dayLandings;
+    private final int nightLandings;
+    private final String remarks;
+
+    public FlightEntryDto(@JsonProperty("id") UUID id, @JsonProperty("aircraftId") UUID aircraftId,
+                           @JsonProperty("flightTrackId") UUID flightTrackId, @JsonProperty("date") LocalDate date,
+                           @JsonProperty("departurePlace") String departurePlace,
+                           @JsonProperty("departureTime") OffsetDateTime departureTime,
+                           @JsonProperty("arrivalPlace") String arrivalPlace,
+                           @JsonProperty("arrivalTime") OffsetDateTime arrivalTime,
+                           @JsonProperty("picName") String picName,
+                           @JsonProperty("singleEngineMinutes") int singleEngineMinutes,
+                           @JsonProperty("multiEngineMinutes") int multiEngineMinutes,
+                           @JsonProperty("totalMinutes") int totalMinutes,
+                           @JsonProperty("nightMinutes") int nightMinutes,
+                           @JsonProperty("ifrMinutes") int ifrMinutes,
+                           @JsonProperty("crossCountryMinutes") int crossCountryMinutes,
+                           @JsonProperty("picMinutes") int picMinutes,
+                           @JsonProperty("coPilotMinutes") int coPilotMinutes,
+                           @JsonProperty("dualMinutes") int dualMinutes,
+                           @JsonProperty("instructorMinutes") int instructorMinutes,
+                           @JsonProperty("dayLandings") int dayLandings,
+                           @JsonProperty("nightLandings") int nightLandings,
+                           @JsonProperty("remarks") String remarks) {
+        this.id = id;
+        this.aircraftId = aircraftId;
+        this.flightTrackId = flightTrackId;
+        this.date = date;
+        this.departurePlace = departurePlace;
+        this.departureTime = departureTime;
+        this.arrivalPlace = arrivalPlace;
+        this.arrivalTime = arrivalTime;
+        this.picName = picName;
+        this.singleEngineMinutes = singleEngineMinutes;
+        this.multiEngineMinutes = multiEngineMinutes;
+        this.totalMinutes = totalMinutes;
+        this.nightMinutes = nightMinutes;
+        this.ifrMinutes = ifrMinutes;
+        this.crossCountryMinutes = crossCountryMinutes;
+        this.picMinutes = picMinutes;
+        this.coPilotMinutes = coPilotMinutes;
+        this.dualMinutes = dualMinutes;
+        this.instructorMinutes = instructorMinutes;
+        this.dayLandings = dayLandings;
+        this.nightLandings = nightLandings;
+        this.remarks = remarks;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getAircraftId() {
+        return aircraftId;
+    }
+
+    public UUID getFlightTrackId() {
+        return flightTrackId;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public String getDeparturePlace() {
+        return departurePlace;
+    }
+
+    public OffsetDateTime getDepartureTime() {
+        return departureTime;
+    }
+
+    public String getArrivalPlace() {
+        return arrivalPlace;
+    }
+
+    public OffsetDateTime getArrivalTime() {
+        return arrivalTime;
+    }
+
+    public String getPicName() {
+        return picName;
+    }
+
+    public int getSingleEngineMinutes() {
+        return singleEngineMinutes;
+    }
+
+    public int getMultiEngineMinutes() {
+        return multiEngineMinutes;
+    }
+
+    public int getTotalMinutes() {
+        return totalMinutes;
+    }
+
+    public int getNightMinutes() {
+        return nightMinutes;
+    }
+
+    public int getIfrMinutes() {
+        return ifrMinutes;
+    }
+
+    public int getCrossCountryMinutes() {
+        return crossCountryMinutes;
+    }
+
+    public int getPicMinutes() {
+        return picMinutes;
+    }
+
+    public int getCoPilotMinutes() {
+        return coPilotMinutes;
+    }
+
+    public int getDualMinutes() {
+        return dualMinutes;
+    }
+
+    public int getInstructorMinutes() {
+        return instructorMinutes;
+    }
+
+    public int getDayLandings() {
+        return dayLandings;
+    }
+
+    public int getNightLandings() {
+        return nightLandings;
+    }
+
+    public String getRemarks() {
+        return remarks;
+    }
+}

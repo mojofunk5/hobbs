@@ -1,0 +1,9 @@
+.git
+.gradle
+build
+target
+.idea
+.claude
+*.mv.db
+*.trace.db
+.env
