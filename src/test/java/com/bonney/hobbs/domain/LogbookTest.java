@@ -44,7 +44,7 @@ class LogbookTest {
         OffsetDateTime arrivalTime = departureTime.plusMinutes(45);
 
         FlightEntry entry = logbook.createEntry(pilotId, aircraftId, null, date, "EGCM", departureTime,
-                "EGCM", arrivalTime, "Instructor Smith", 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
+                "EGCM", arrivalTime, PilotId.random(), null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
 
         assertThat(entry.getPilotId(), is(pilotId));
         assertThat(entry.getAircraftId(), is(aircraftId));
@@ -61,8 +61,8 @@ class LogbookTest {
         FlightTrackId trackId = FlightTrackId.random();
 
         FlightEntry entry = logbook.createEntry(PilotId.random(), AircraftId.random(), trackId,
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), "Self",
-                45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
+                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), PilotId.random(),
+                null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
 
         assertThat(entry.getFlightTrackId(), is(Optional.of(trackId)));
     }
@@ -110,7 +110,7 @@ class LogbookTest {
 
     private FlightEntry aFlightEntry(FlightEntryId id) {
         return new FlightEntry(id, PilotId.random(), AircraftId.random(), null, LocalDate.now(),
-                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), "Self",
+                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), PilotId.random(), null,
                 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 1, 0, null);
     }
 }

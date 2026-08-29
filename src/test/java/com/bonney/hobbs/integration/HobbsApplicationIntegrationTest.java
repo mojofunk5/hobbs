@@ -130,7 +130,7 @@ class HobbsApplicationIntegrationTest {
         HobbsClient pilot = createAuthenticatedClient();
         UUID aircraftId = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
 
-        FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(aircraftId, null));
+        FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
 
         assertThat(created.getDeparturePlace(), is("EGCM"));
         assertThat(created.getTotalMinutes(), is(45));
@@ -145,7 +145,7 @@ class HobbsApplicationIntegrationTest {
         HobbsClient first = createAuthenticatedClient();
         HobbsClient second = createAuthenticatedClient();
         UUID aircraftId = first.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
-        FlightEntryDto firstEntry = first.createFlightEntry(aFlightEntry(aircraftId, null));
+        FlightEntryDto firstEntry = first.createFlightEntry(aFlightEntry(first, aircraftId, null));
         second.createAircraft(new CreateAircraftDto("G-WXYZ", "Piper", "PA-28", "SINGLE_ENGINE"));
 
         List<FlightEntryDto> firstList = first.listFlightEntries();
@@ -160,7 +160,7 @@ class HobbsApplicationIntegrationTest {
         HobbsClient first = createAuthenticatedClient();
         HobbsClient second = createAuthenticatedClient();
         UUID aircraftId = first.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
-        FlightEntryDto entry = first.createFlightEntry(aFlightEntry(aircraftId, null));
+        FlightEntryDto entry = first.createFlightEntry(aFlightEntry(first, aircraftId, null));
 
         assertThrows(FeignException.Forbidden.class, () -> second.getFlightEntry(entry.getId()));
     }
@@ -180,7 +180,7 @@ class HobbsApplicationIntegrationTest {
         HobbsClient pilot = createAuthenticatedClient();
         UUID aircraftId = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
 
-        FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(aircraftId, null));
+        FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
 
         assertThat(created.getFlightTrackId(), is((UUID) null));
     }
@@ -195,12 +195,13 @@ class HobbsApplicationIntegrationTest {
         assertThat(session.getName(), is("Invited Pilot"));
     }
 
-    private CreateFlightEntryDto aFlightEntry(UUID aircraftId, UUID flightTrackId) {
+    private CreateFlightEntryDto aFlightEntry(HobbsClient client, UUID aircraftId, UUID flightTrackId) {
+        UUID pilotInCommandId = client.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         LocalDate date = LocalDate.of(2026, 8, 24);
         OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
         return new CreateFlightEntryDto(aircraftId, flightTrackId, date, "EGCM", departureTime, "EGCM",
-                arrivalTime, "Instructor Smith", 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
+                arrivalTime, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
     }
 
     private SessionDto register(String name, String email, String password) {
@@ -891,7 +892,7 @@ class HobbsApplicationIntegrationTest {
         SessionDto session = register("Del2", "del-flighthistory@example.com", "Password123");
         HobbsClient authedClient = createAuthenticatedClient(session.getSessionId());
         UUID aircraftId = authedClient.createAircraft(new CreateAircraftDto("G-KEEP", "Cessna", "152", "SINGLE_ENGINE")).getId();
-        FlightEntryDto flight = authedClient.createFlightEntry(aFlightEntry(aircraftId, null));
+        FlightEntryDto flight = authedClient.createFlightEntry(aFlightEntry(authedClient, aircraftId, null));
 
         authedClient.deletePilot(session.getPilotId());
 

@@ -23,6 +23,7 @@ class FlightEntryRepositoryTest {
     private DSLContext dsl;
     private FlightEntryRepository repository;
     private PilotId pilotId;
+    private PilotId instructorPilotId;
     private AircraftId aircraftId;
 
     @BeforeEach
@@ -42,6 +43,10 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(pilot);
         pilotId = pilot.getId();
 
+        Pilot instructor = new Pilot(PilotId.random(), "Instructor Smith", null);
+        new PilotRepository(dsl).save(instructor);
+        instructorPilotId = instructor.getId();
+
         Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
         new AircraftRepository(dsl).save(aircraft);
         aircraftId = aircraft.getId();
@@ -53,7 +58,7 @@ class FlightEntryRepositoryTest {
         OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date,
-                "EGCM", departureTime, "EGCM", arrivalTime, "Instructor Smith",
+                "EGCM", departureTime, "EGCM", arrivalTime, instructorPilotId, null,
                 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
 
         repository.save(entry);
@@ -61,7 +66,8 @@ class FlightEntryRepositoryTest {
         FlightEntry found = repository.findById(entry.getId()).orElseThrow();
         assertThat(found, is(entry));
         assertThat(found.getDeparturePlace(), is("EGCM"));
-        assertThat(found.getPicName(), is("Instructor Smith"));
+        assertThat(found.getPilotInCommandId(), is(instructorPilotId));
+        assertThat(found.getCoPilotId(), is(Optional.empty()));
         assertThat(found.getTotalMinutes(), is(45));
         assertThat(found.getDualMinutes(), is(45));
         assertThat(found.getDayLandings(), is(3));
@@ -80,7 +86,7 @@ class FlightEntryRepositoryTest {
         new FlightTrackRepository(dsl).save(track);
 
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, track.getId(),
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), "Self",
+                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), pilotId, null,
                 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(entry);
 
@@ -109,8 +115,8 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(otherPilot);
         repository.save(anEntry(LocalDate.now(), "2026-08-24T10:00:00Z", "2026-08-24T10:30:00Z"));
         FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), "Someone Else",
-                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), otherPilot.getId(),
+                null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(othersEntry);
 
         List<FlightEntry> found = repository.findAllByPilotId(otherPilot.getId());
@@ -120,7 +126,7 @@ class FlightEntryRepositoryTest {
 
     private FlightEntry anEntry(LocalDate date, String departureTime, String arrivalTime) {
         return new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date, "EGCM",
-                OffsetDateTime.parse(departureTime), "EGCM", OffsetDateTime.parse(arrivalTime), "Self",
+                OffsetDateTime.parse(departureTime), "EGCM", OffsetDateTime.parse(arrivalTime), pilotId, null,
                 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 }

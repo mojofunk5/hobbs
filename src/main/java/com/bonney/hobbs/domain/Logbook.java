@@ -23,15 +23,16 @@ public class Logbook {
 
     public FlightEntry createEntry(PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
                                     LocalDate date, String departurePlace, OffsetDateTime departureTime,
-                                    String arrivalPlace, OffsetDateTime arrivalTime, String picName,
-                                    int singleEngineMinutes, int multiEngineMinutes, int totalMinutes,
-                                    int nightMinutes, int ifrMinutes, int crossCountryMinutes,
-                                    int picMinutes, int coPilotMinutes, int dualMinutes, int instructorMinutes,
-                                    int dayLandings, int nightLandings, String remarks) {
+                                    String arrivalPlace, OffsetDateTime arrivalTime, PilotId pilotInCommandId,
+                                    PilotId coPilotId, int singleEngineMinutes, int multiEngineMinutes,
+                                    int totalMinutes, int nightMinutes, int ifrMinutes, int crossCountryMinutes,
+                                    int pilotInCommandMinutes, int coPilotMinutes, int dualMinutes,
+                                    int instructorMinutes, int dayLandings, int nightLandings, String remarks) {
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, flightTrackId, date,
-                departurePlace, departureTime, arrivalPlace, arrivalTime, picName, singleEngineMinutes,
-                multiEngineMinutes, totalMinutes, nightMinutes, ifrMinutes, crossCountryMinutes, picMinutes,
-                coPilotMinutes, dualMinutes, instructorMinutes, dayLandings, nightLandings, remarks);
+                departurePlace, departureTime, arrivalPlace, arrivalTime, pilotInCommandId, coPilotId,
+                singleEngineMinutes, multiEngineMinutes, totalMinutes, nightMinutes, ifrMinutes,
+                crossCountryMinutes, pilotInCommandMinutes, coPilotMinutes, dualMinutes, instructorMinutes,
+                dayLandings, nightLandings, remarks);
         flightEntryRepository.save(entry);
         return entry;
     }
