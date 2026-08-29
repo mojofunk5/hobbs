@@ -20,11 +20,13 @@ person to claim it via a referral code scoped to that specific `PilotId`
 (`referral_code.claims_pilot_id`). Full design, ground truth, and rationale in
 [`docs/plans/pilot-account-split.md`](plans/pilot-account-split.md) - including why `email`/`disabled`
 were dropped from `Pilot` entirely rather than just relaxed, and the pre-existing
-`pilot.email`/`auth_identity.identifier` desync bug fixed as a byproduct. Migration is expand-only
-(`pilot.email`/`disabled_at` still exist, just unused by new code); dropping them is a deliberate
-later, separate migration. Merging two `Pilot` records (e.g. someone who registered independently
-instead of via an invite) and referencing a co-pilot's `PilotId` from `FlightEntry` are both explicitly
-out of scope, left for later plans.
+`pilot.email`/`auth_identity.identifier` desync bug fixed as a byproduct. The plan called for an
+expand-only migration (leaving `pilot.email`/`disabled_at` in place until a later, separate migration,
+per the repo's contract-phase rule for live deploys) - but since no real pilot/flight data is deployed
+yet, there's no live-compatibility window to protect, so `V4__drop_unused_pilot_columns.sql` drops
+both columns in this same PR instead of waiting. Merging two `Pilot` records (e.g. someone who
+registered independently instead of via an invite) and referencing a co-pilot's `PilotId` from
+`FlightEntry` are both explicitly out of scope, left for later plans.
 
 ## 2026-08-29: Branch protection + auto-delete-on-merge added retroactively
 

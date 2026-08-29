@@ -1,8 +1,10 @@
 # Plan: Pilot/Account split
 
 **Status:** Designed and approved 2026-08-29; implemented 2026-08-29 on `feature/pilot-account-split`.
-Everything in Design/Migration/New endpoints below is built and tested. The "Explicitly out of scope"
-items at the bottom remain exactly that - not part of this change.
+Everything in Design/Migration/New endpoints below is built and tested, including dropping
+`pilot.email`/`pilot.disabled_at` in the same PR (see Migration section - no real data deployed yet,
+so the usual contract-phase wait didn't apply). The "Explicitly out of scope" items at the bottom
+remain exactly that - not part of this change.
 
 ## Context
 
@@ -194,10 +196,11 @@ ALTER TABLE referral_code ADD COLUMN claims_pilot_id UUID REFERENCES pilot(id);
 in this same deploy stops reading/writing them entirely (switches to `account`), but the columns
 themselves aren't dropped yet.
 
-**Follow-up, explicitly out of scope for this plan:** a later, separate migration drops
-`pilot.email`/`pilot.disabled_at` once a full deploy cycle has confirmed nothing reads them (the
-repo's own contract-phase rule: only drop once nothing still reads/writes the old shape). Don't do
-this in the same PR/deploy as the expand phase above.
+**Follow-up:** originally planned as a later, separate migration dropping `pilot.email`/
+`pilot.disabled_at` once a full deploy cycle confirmed nothing reads them (the repo's own
+contract-phase rule). In practice there's no real pilot/flight data deployed yet, so there's no live
+window to protect - `V4__drop_unused_pilot_columns.sql` drops both columns directly, in the same PR
+as the expand phase, rather than waiting.
 
 ## New/changed endpoints summary
 
@@ -236,7 +239,5 @@ this plan.
   later plan's decision entirely; this plan doesn't add or presume any particular shape for it.
 - Any merge-two-pilot-records capability - future work, not designed here.
 - Any `hobbs-ui` UI - nothing to show until a later plan adds a place to invite/pick a co-pilot.
-- Dropping the now-unused `pilot.email`/`pilot.disabled_at` columns - a later, separate migration
-  once a full deploy cycle confirms nothing reads them.
 - Fixing `SessionAuthFilter` not re-checking disabled status on every request (only at login) - a
   pre-existing gap, noted for awareness, not created or fixed by this plan.
