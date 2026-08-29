@@ -34,8 +34,10 @@ docker compose run --rm --build app migrate
 docker compose up -d app
 ```
 
-Brings up Postgres and the app only, at `http://localhost:8080`. A `hobbs-ui` repo (Flutter web
-build) and its own Caddy compose stack are the planned frontend - not built yet.
+Brings up Postgres and the app only, at `http://localhost:8080`. The frontend is
+[`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) (Flutter web), live at
+[hobbs.bssd.co.uk](https://hobbs.bssd.co.uk) - TLS/reverse-proxy for both is a separate shared
+[`caddy`](https://github.com/mojofunk5/caddy) repo, not part of either app's own compose stack.
 
 ## Running tests
 
@@ -97,6 +99,13 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
 - Deriving a draft `FlightEntry` from a `FlightTrack` (departure/arrival detection, landing counting,
   night-time-from-sunset-tables, cross-country distance) - currently `FlightEntry` and `FlightTrack`
   exist as separate persisted things with no automatic bridge between them yet
-- The Flutter mobile app (iOS/Android/web) - the actual GPS recording UI doesn't exist yet; this repo
-  is the backend only
 - Pagination/filtering on `GET /flight` (currently returns everything for the authenticated pilot)
+- Separating "a person recordable on a flight" (PIC, co-pilot, instructor) from "an account holder" -
+  today `Pilot` conflates the two, so a co-pilot who hasn't signed up can't be recorded by name as a
+  real `Pilot` row
+- Logbook entry screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app all live in
+  [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) - see that repo's `docs/architecture-brief.md`
+  for the roadmap
+
+See `docs/DECISIONS.md` for a dated record of significant architecture/engineering decisions made
+along the way.

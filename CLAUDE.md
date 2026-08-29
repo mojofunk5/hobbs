@@ -4,6 +4,16 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Working Practices
 
+- **Record significant decisions in `docs/DECISIONS.md`, never delete an entry.** Same convention
+  `things/docs/BACKLOG.md` states for itself: a decision that's later superseded gets a note pointing
+  to what replaced it, rather than being removed - the file is a durable record, not a live TODO
+  list. Add an entry whenever a non-obvious architecture or engineering choice gets made (a tradeoff
+  was weighed, an alternative was considered and rejected, something departs from an established
+  pattern) - not for routine feature work that doesn't involve a real decision.
+- **The reverse proxy/TLS for this backend lives in the separate shared [`caddy`]
+  (https://github.com/mojofunk5/caddy) repo, not here or in `hobbs-ui`.** Don't assume this repo owns
+  its own Caddy config - it doesn't, and hasn't since `hobbs-ui` needed the same host ports 80/443
+  that a per-repo Caddy container can't share.
 - **Keep documentation in sync.** When making a significant change, update the relevant
   context/documentation files in the same change - this includes `CLAUDE.md`, `README.md`, and
   OpenAPI descriptions. Don't leave stale descriptions behind.
@@ -106,10 +116,13 @@ real time would intermittently fail whenever a second ticks over mid-test.
   from full-stops), night time (needs sunset/sunrise tables per airfield/date), and cross-country
   distance. Currently the two are just linkable via `flightTrackId`; nothing populates one from the
   other yet.
-- **Flutter app.** This repo is the backend only. The mobile/web app - including the background GPS
-  recording itself (`flutter_background_geolocation`, proper `Always`/background-service permission
-  handling on both platforms, offline-first local buffering since airfields often have poor
-  signal) - doesn't exist yet.
-- **CI/deploy secrets.** `.github/workflows/build.yml` deploys to a self-hosted VPS via SSH/GHCR, but
-  the secrets for *this* repo haven't been configured yet - the workflow won't actually deploy until
-  that's done.
+- **Pilot vs. account.** `Pilot` currently conflates "a person recordable on a flight" (PIC, co-pilot,
+  instructor) with "an account holder" - there's no way to record a co-pilot who hasn't signed up.
+  Planned but not yet designed.
+- **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
+  [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui), not here - see that repo's
+  `docs/architecture-brief.md` for the roadmap.
+
+The Flutter app (`hobbs-ui`) is built and deployed - live at
+[hobbs.bssd.co.uk](https://hobbs.bssd.co.uk). CI/deploy secrets for this repo are configured and
+working; `.github/workflows/build.yml` deploys to the VPS on every push to `master`.
