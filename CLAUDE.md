@@ -118,7 +118,8 @@ real time would intermittently fail whenever a second ticks over mid-test.
   other yet.
 - **Pilot vs. account.** `Pilot` currently conflates "a person recordable on a flight" (PIC, co-pilot,
   instructor) with "an account holder" - there's no way to record a co-pilot who hasn't signed up.
-  Planned but not yet designed.
+  Fully designed in [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md), not yet
+  implemented.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui), not here - see that repo's
   `docs/architecture-brief.md` for the roadmap.
