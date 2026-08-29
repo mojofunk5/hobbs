@@ -25,14 +25,15 @@ public class FlightEntry {
     private final OffsetDateTime departureTime;
     private final String arrivalPlace;
     private final OffsetDateTime arrivalTime;
-    private final String picName;
+    private final PilotId pilotInCommandId;
+    private final PilotId coPilotId;
     private final int singleEngineMinutes;
     private final int multiEngineMinutes;
     private final int totalMinutes;
     private final int nightMinutes;
     private final int ifrMinutes;
     private final int crossCountryMinutes;
-    private final int picMinutes;
+    private final int pilotInCommandMinutes;
     private final int coPilotMinutes;
     private final int dualMinutes;
     private final int instructorMinutes;
@@ -42,10 +43,10 @@ public class FlightEntry {
 
     public FlightEntry(FlightEntryId id, PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
                         LocalDate date, String departurePlace, OffsetDateTime departureTime,
-                        String arrivalPlace, OffsetDateTime arrivalTime, String picName,
-                        int singleEngineMinutes, int multiEngineMinutes, int totalMinutes,
+                        String arrivalPlace, OffsetDateTime arrivalTime, PilotId pilotInCommandId,
+                        PilotId coPilotId, int singleEngineMinutes, int multiEngineMinutes, int totalMinutes,
                         int nightMinutes, int ifrMinutes, int crossCountryMinutes,
-                        int picMinutes, int coPilotMinutes, int dualMinutes, int instructorMinutes,
+                        int pilotInCommandMinutes, int coPilotMinutes, int dualMinutes, int instructorMinutes,
                         int dayLandings, int nightLandings, String remarks) {
         // FlightTrackId is deliberately nullable here - GPS recording is an optional fast-path onto
         // this same entry, never a requirement. A manually-entered flight has no track at all, and a
@@ -63,14 +64,15 @@ public class FlightEntry {
         this.departureTime = departureTime;
         this.arrivalPlace = arrivalPlace;
         this.arrivalTime = arrivalTime;
-        this.picName = picName;
+        this.pilotInCommandId = pilotInCommandId;
+        this.coPilotId = coPilotId;
         this.singleEngineMinutes = singleEngineMinutes;
         this.multiEngineMinutes = multiEngineMinutes;
         this.totalMinutes = totalMinutes;
         this.nightMinutes = nightMinutes;
         this.ifrMinutes = ifrMinutes;
         this.crossCountryMinutes = crossCountryMinutes;
-        this.picMinutes = picMinutes;
+        this.pilotInCommandMinutes = pilotInCommandMinutes;
         this.coPilotMinutes = coPilotMinutes;
         this.dualMinutes = dualMinutes;
         this.instructorMinutes = instructorMinutes;
@@ -115,8 +117,12 @@ public class FlightEntry {
         return arrivalTime;
     }
 
-    public String getPicName() {
-        return picName;
+    public PilotId getPilotInCommandId() {
+        return pilotInCommandId;
+    }
+
+    public Optional<PilotId> getCoPilotId() {
+        return Optional.ofNullable(coPilotId);
     }
 
     public int getSingleEngineMinutes() {
@@ -143,8 +149,8 @@ public class FlightEntry {
         return crossCountryMinutes;
     }
 
-    public int getPicMinutes() {
-        return picMinutes;
+    public int getPilotInCommandMinutes() {
+        return pilotInCommandMinutes;
     }
 
     public int getCoPilotMinutes() {

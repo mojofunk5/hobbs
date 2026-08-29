@@ -42,7 +42,7 @@ class FlightEntryTest {
     void negativeTotalMinutesAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> new FlightEntry(FlightEntryId.random(),
                 PilotId.random(), AircraftId.random(), null, LocalDate.now(), "EGCM", OffsetDateTime.now(),
-                "EGCM", OffsetDateTime.now(), "Self", 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
+                "EGCM", OffsetDateTime.now(), PilotId.random(), null, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
     }
 
     @Test
@@ -62,7 +62,7 @@ class FlightEntryTest {
 
     private FlightEntry anEntry(FlightEntryId id, FlightTrackId flightTrackId) {
         return new FlightEntry(id, PilotId.random(), AircraftId.random(), flightTrackId, LocalDate.now(),
-                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), "Self",
+                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), PilotId.random(), null,
                 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 }

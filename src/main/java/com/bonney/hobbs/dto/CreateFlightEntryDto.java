@@ -21,14 +21,15 @@ public class CreateFlightEntryDto {
     private final OffsetDateTime departureTime;
     private final String arrivalPlace;
     private final OffsetDateTime arrivalTime;
-    private final String picName;
+    private final UUID pilotInCommandId;
+    private final UUID coPilotId;
     private final int singleEngineMinutes;
     private final int multiEngineMinutes;
     private final int totalMinutes;
     private final int nightMinutes;
     private final int ifrMinutes;
     private final int crossCountryMinutes;
-    private final int picMinutes;
+    private final int pilotInCommandMinutes;
     private final int coPilotMinutes;
     private final int dualMinutes;
     private final int instructorMinutes;
@@ -43,14 +44,15 @@ public class CreateFlightEntryDto {
                                  @JsonProperty("departureTime") OffsetDateTime departureTime,
                                  @JsonProperty("arrivalPlace") String arrivalPlace,
                                  @JsonProperty("arrivalTime") OffsetDateTime arrivalTime,
-                                 @JsonProperty("picName") String picName,
+                                 @JsonProperty("pilotInCommandId") UUID pilotInCommandId,
+                                 @JsonProperty("coPilotId") UUID coPilotId,
                                  @JsonProperty("singleEngineMinutes") int singleEngineMinutes,
                                  @JsonProperty("multiEngineMinutes") int multiEngineMinutes,
                                  @JsonProperty("totalMinutes") int totalMinutes,
                                  @JsonProperty("nightMinutes") int nightMinutes,
                                  @JsonProperty("ifrMinutes") int ifrMinutes,
                                  @JsonProperty("crossCountryMinutes") int crossCountryMinutes,
-                                 @JsonProperty("picMinutes") int picMinutes,
+                                 @JsonProperty("pilotInCommandMinutes") int pilotInCommandMinutes,
                                  @JsonProperty("coPilotMinutes") int coPilotMinutes,
                                  @JsonProperty("dualMinutes") int dualMinutes,
                                  @JsonProperty("instructorMinutes") int instructorMinutes,
@@ -64,14 +66,15 @@ public class CreateFlightEntryDto {
         this.departureTime = departureTime;
         this.arrivalPlace = arrivalPlace;
         this.arrivalTime = arrivalTime;
-        this.picName = picName;
+        this.pilotInCommandId = pilotInCommandId;
+        this.coPilotId = coPilotId;
         this.singleEngineMinutes = singleEngineMinutes;
         this.multiEngineMinutes = multiEngineMinutes;
         this.totalMinutes = totalMinutes;
         this.nightMinutes = nightMinutes;
         this.ifrMinutes = ifrMinutes;
         this.crossCountryMinutes = crossCountryMinutes;
-        this.picMinutes = picMinutes;
+        this.pilotInCommandMinutes = pilotInCommandMinutes;
         this.coPilotMinutes = coPilotMinutes;
         this.dualMinutes = dualMinutes;
         this.instructorMinutes = instructorMinutes;
@@ -108,8 +111,12 @@ public class CreateFlightEntryDto {
         return arrivalTime;
     }
 
-    public String getPicName() {
-        return picName;
+    public UUID getPilotInCommandId() {
+        return pilotInCommandId;
+    }
+
+    public UUID getCoPilotId() {
+        return coPilotId;
     }
 
     public int getSingleEngineMinutes() {
@@ -136,8 +143,8 @@ public class CreateFlightEntryDto {
         return crossCountryMinutes;
     }
 
-    public int getPicMinutes() {
-        return picMinutes;
+    public int getPilotInCommandMinutes() {
+        return pilotInCommandMinutes;
     }
 
     public int getCoPilotMinutes() {

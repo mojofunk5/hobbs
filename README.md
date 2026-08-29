@@ -88,11 +88,12 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md) for the full design.
 - **Aircraft** - registration, make, model, engine category. Shared across pilots, not scoped to one
   account (a club trainer only needs registering once)
-- **FlightEntry** - one row of the logbook: date, departure/arrival (place + time), PIC name, and
-  every duration (single/multi-engine, total, night, IFR, cross-country, PIC, co-pilot, dual,
-  instructor) plus day/night landings and remarks. All durations are stored in whole minutes, not
-  float hours, to avoid rounding drift across hundreds of entries. `flightTrackId` is nullable and
-  optional - see below.
+- **FlightEntry** - one row of the logbook: date, departure/arrival (place + time),
+  `pilotInCommandId`/`coPilotId` (both `PilotId`s - see `docs/GLOSSARY.md`'s **PIC** entry for how
+  the PIC can differ from the entry's owner), and every duration (single/multi-engine, total, night,
+  IFR, cross-country, PIC, co-pilot, dual, instructor) plus day/night landings and remarks. All
+  durations are stored in whole minutes, not float hours, to avoid rounding drift across hundreds of
+  entries. `flightTrackId` and `coPilotId` are nullable and optional - see below.
 - **FlightTrack** - a raw GPS recording (points stored as a single JSON blob for now, not one row per
   point - see the class Javadoc for why). Feeds a *draft* `FlightEntry` that the pilot confirms or
   corrects; never writes a `FlightEntry` on its own.
@@ -105,9 +106,9 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   night-time-from-sunset-tables, cross-country distance) - currently `FlightEntry` and `FlightTrack`
   exist as separate persisted things with no automatic bridge between them yet
 - Pagination/filtering on `GET /flight` (currently returns everything for the authenticated pilot)
-- `FlightEntry`/`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId` - the pilot/account
-  split above makes an unclaimed `Pilot` record possible, but nothing in the flight domain points at
-  one yet; `pic_name` stays free text for now
+- `SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId` - `FlightEntry` now has
+  `pilotInCommandId`/`coPilotId`, but the other two flight-domain classes don't reference a `PilotId`
+  for a co-pilot yet
 - Merging two `Pilot` records (e.g. someone who registered their own account instead of using an
   invite that would've attached them to an unclaimed record someone else already created)
 - Pilot/aircraft search or pickers when adding a flight entry - `PilotId`/`AircraftId` are entered

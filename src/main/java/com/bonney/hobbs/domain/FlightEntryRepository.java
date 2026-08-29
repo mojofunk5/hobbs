@@ -27,14 +27,15 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.DEPARTURE_TIME, entry.getDepartureTime())
                 .set(FLIGHT_ENTRY.ARRIVAL_PLACE, entry.getArrivalPlace())
                 .set(FLIGHT_ENTRY.ARRIVAL_TIME, entry.getArrivalTime())
-                .set(FLIGHT_ENTRY.PIC_NAME, entry.getPicName())
+                .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
+                .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
                 .set(FLIGHT_ENTRY.MULTI_ENGINE_MINUTES, entry.getMultiEngineMinutes())
                 .set(FLIGHT_ENTRY.TOTAL_MINUTES, entry.getTotalMinutes())
                 .set(FLIGHT_ENTRY.NIGHT_MINUTES, entry.getNightMinutes())
                 .set(FLIGHT_ENTRY.IFR_MINUTES, entry.getIfrMinutes())
                 .set(FLIGHT_ENTRY.CROSS_COUNTRY_MINUTES, entry.getCrossCountryMinutes())
-                .set(FLIGHT_ENTRY.PIC_MINUTES, entry.getPicMinutes())
+                .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_MINUTES, entry.getPilotInCommandMinutes())
                 .set(FLIGHT_ENTRY.CO_PILOT_MINUTES, entry.getCoPilotMinutes())
                 .set(FLIGHT_ENTRY.DUAL_MINUTES, entry.getDualMinutes())
                 .set(FLIGHT_ENTRY.INSTRUCTOR_MINUTES, entry.getInstructorMinutes())
@@ -49,14 +50,15 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.DEPARTURE_TIME, entry.getDepartureTime())
                 .set(FLIGHT_ENTRY.ARRIVAL_PLACE, entry.getArrivalPlace())
                 .set(FLIGHT_ENTRY.ARRIVAL_TIME, entry.getArrivalTime())
-                .set(FLIGHT_ENTRY.PIC_NAME, entry.getPicName())
+                .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
+                .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
                 .set(FLIGHT_ENTRY.MULTI_ENGINE_MINUTES, entry.getMultiEngineMinutes())
                 .set(FLIGHT_ENTRY.TOTAL_MINUTES, entry.getTotalMinutes())
                 .set(FLIGHT_ENTRY.NIGHT_MINUTES, entry.getNightMinutes())
                 .set(FLIGHT_ENTRY.IFR_MINUTES, entry.getIfrMinutes())
                 .set(FLIGHT_ENTRY.CROSS_COUNTRY_MINUTES, entry.getCrossCountryMinutes())
-                .set(FLIGHT_ENTRY.PIC_MINUTES, entry.getPicMinutes())
+                .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_MINUTES, entry.getPilotInCommandMinutes())
                 .set(FLIGHT_ENTRY.CO_PILOT_MINUTES, entry.getCoPilotMinutes())
                 .set(FLIGHT_ENTRY.DUAL_MINUTES, entry.getDualMinutes())
                 .set(FLIGHT_ENTRY.INSTRUCTOR_MINUTES, entry.getInstructorMinutes())
@@ -93,14 +95,15 @@ public class FlightEntryRepository {
                 record.getDepartureTime(),
                 record.getArrivalPlace(),
                 record.getArrivalTime(),
-                record.getPicName(),
+                PilotId.from(record.getPilotInCommandId()),
+                record.getCoPilotId() == null ? null : PilotId.from(record.getCoPilotId()),
                 record.getSingleEngineMinutes(),
                 record.getMultiEngineMinutes(),
                 record.getTotalMinutes(),
                 record.getNightMinutes(),
                 record.getIfrMinutes(),
                 record.getCrossCountryMinutes(),
-                record.getPicMinutes(),
+                record.getPilotInCommandMinutes(),
                 record.getCoPilotMinutes(),
                 record.getDualMinutes(),
                 record.getInstructorMinutes(),
