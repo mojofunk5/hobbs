@@ -28,14 +28,17 @@ see `docs/DECISIONS.md` for where the actual code review/merge history lives per
 
 ## Domain shape after this plan
 
-Naming: spell out `pilotInCommand` rather than abbreviating to `pic` in code/schema/DTOs - `pic*`
-stays only where it's already an established field name for a *duration* (`picMinutes`), not for
-the new identity fields this plan adds.
+Naming: spell out `pilotInCommand` rather than abbreviating to `pic` in code/schema/DTOs. This
+includes the pre-existing `picMinutes` duration field, not just the new identity fields - renamed to
+`pilotInCommandMinutes` (`pilot_in_command_minutes` column) as part of chunk 1, so `pic*` doesn't
+survive anywhere as a leftover inconsistent with the new fields sitting right next to it.
 
 - `FlightEntry.pilotInCommandId` (`PilotId`, required) replaces `picName` (`String`) - who was PIC
   on this specific flight. Distinct from `FlightEntry.pilotId` (whose logbook the entry belongs to)
   - see `docs/GLOSSARY.md`'s **PIC** entry for why those two can differ (e.g. a student's dual
   entry).
+- `FlightEntry.picMinutes` → `pilotInCommandMinutes` (rename only, same `int` duration semantics -
+  see Naming above).
 - `FlightEntry.coPilotId` (`Optional<PilotId>`, nullable) - new. A flight can be solo (no co-pilot),
   so this stays optional, same nullability pattern as `flightTrackId`. `coPilotMinutes` (the
   duration) is unaffected - it's a separate concept from *who* the co-pilot was.
@@ -55,10 +58,12 @@ Each chunk is its own PR per `CLAUDE.md`'s "keep PRs small" rule.
 
 ### 1. The id change (backend only, `hobbs`)
 - Migration: drop `pic_name`, add `pilot_in_command_id UUID NOT NULL REFERENCES pilot(id)` and
-  `co_pilot_id UUID NULL REFERENCES pilot(id)` on `flight_entry`. Straight swap (no
-  expand/contract - no live data to protect), same reasoning as `V4`/`V5` in the account split.
-- `FlightEntry.java`: `picName` (String) → `pilotInCommandId` (PilotId); add `coPilotId`
-  (`Optional<PilotId>`, same pattern as `getFlightTrackId()`).
+  `co_pilot_id UUID NULL REFERENCES pilot(id)` on `flight_entry`; rename `pic_minutes` to
+  `pilot_in_command_minutes` (see Naming above). Straight swap/rename (no expand/contract - no live
+  data to protect), same reasoning as `V4`/`V5` in the account split.
+- `FlightEntry.java`: `picName` (String) → `pilotInCommandId` (PilotId); `picMinutes` →
+  `pilotInCommandMinutes` (rename only); add `coPilotId` (`Optional<PilotId>`, same pattern as
+  `getFlightTrackId()`).
 - `FlightEntryRepository`, `FlightEntryMapper`, `FlightEntryDto`, `CreateFlightEntryDto`,
   `Logbook.createEntry(...)`: thread both ids through. jOOQ codegen needs re-running against the
   new columns.

@@ -24,10 +24,10 @@ own vocabulary. Alphabetical within each section.
   that specific flight. Not necessarily whose logbook the entry belongs to: a student's dual-training
   entry is owned by the student (`FlightEntry.pilotId`) but the instructor was PIC that flight, so
   `FlightEntry.pilotInCommandId` (a `PilotId` - see [`docs/plans/logbook-entries.md`](plans/logbook-entries.md))
-  records the instructor, and `picMinutes` records how much of the flight the *entry's owner* spent
-  as PIC (zero, on a fully dual flight). In code, spell out `pilotInCommand` rather than abbreviating
-  to `pic` for the new identity field - `pic*` stays as an established name only for the existing
-  duration fields (`picMinutes`).
+  records the instructor, and `pilotInCommandMinutes` records how much of the flight the *entry's
+  owner* spent as PIC (zero, on a fully dual flight). In code, spell out `pilotInCommand` rather than
+  abbreviating to `pic` - this includes renaming the pre-existing `picMinutes` field, not just the
+  new identity fields, so `pic*` doesn't survive anywhere as an inconsistent leftover.
 - **Total time** - the whole flight duration, `totalMinutes`. Every other duration field
   (single/multi-engine, night, IFR, cross-country, PIC, co-pilot, dual, instructor) is a subset or
   breakdown of this, not an addition to it.
