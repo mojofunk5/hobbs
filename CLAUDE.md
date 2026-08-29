@@ -18,6 +18,12 @@ This file provides guidance to Claude Code when working with code in this reposi
   context/documentation files in the same change - this includes `CLAUDE.md`, `README.md`, and
   OpenAPI descriptions. Don't leave stale descriptions behind.
 - **Don't auto-merge.** Open a PR and let Andy review it. Only merge when explicitly told to.
+- **Keep PRs small.** When implementing a multi-part plan (a new migration, several new domain
+  classes/endpoints, a full test-suite update), look for natural seams and split the work into a
+  sequence of smaller PRs rather than landing it all in one - e.g. schema/migration + core domain
+  classes as PR 1, new endpoints as PR 2, admin-side rewiring as PR 3. If a design flaw turns up
+  mid-review (e.g. a follow-up correction), prefer a small follow-up PR over pushing another commit
+  onto an already-large one already under review, unless the fix is trivial or review hasn't started.
 - **Before calling a PR ready, confirm it's actually mergeable against the current tip of its base
   branch** - `gh pr view <n> --json mergeable,mergeStateStatus` should say `MERGEABLE`. Re-check
   every other open PR each time one merges.
