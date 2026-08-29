@@ -110,6 +110,11 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   one yet; `pic_name` stays free text for now
 - Merging two `Pilot` records (e.g. someone who registered their own account instead of using an
   invite that would've attached them to an unclaimed record someone else already created)
+- Pilot/aircraft search or pickers when adding a flight entry - `PilotId`/`AircraftId` are entered
+  as a pasted-in id for now (see [`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)).
+  Fine while there's one real user's worth of test data; doesn't scale past that, and there's no
+  search-by-name endpoint yet to build the picker against (`GET /admin/pilots` is admin-only)
+- Editing or deleting a flight entry - only creating, viewing, and listing are planned for now
 - Logbook entry screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) - see that repo's `docs/architecture-brief.md`
   for the roadmap

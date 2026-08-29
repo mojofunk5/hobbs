@@ -90,9 +90,13 @@ Each chunk is its own PR per `CLAUDE.md`'s "keep PRs small" rule.
 
 ## Explicitly out of scope (left for later)
 
-- Pilot search/autocomplete - see "no pilot search endpoint" above.
-- Aircraft picker in the create-entry screen - same "type the id for now" reasoning.
+Tracked as durable backlog items in README.md's "Not yet built" and CLAUDE.md's "Open work"
+sections (per `docs/DECISIONS.md`'s convention - a plan doc isn't the live TODO list), not just
+here:
+
+- Pilot search/autocomplete, and an aircraft equivalent - see "no pilot search endpoint" above.
 - Editing/deleting an existing entry - only add/view/list are scoped here.
-- Pagination/filtering on `GET /flight`.
+- Pagination/filtering on `GET /flight` (pre-existing backlog item, unaffected by this plan).
 - Deriving a draft entry from a `FlightTrack`, and referencing a co-pilot's `PilotId` from
-  `SimulatorSession`/`FlightTrack` - both remain separate, later plans per `CLAUDE.md`.
+  `SimulatorSession`/`FlightTrack` - both remain separate, later plans per `CLAUDE.md`
+  (pre-existing backlog items, unaffected by this plan).
