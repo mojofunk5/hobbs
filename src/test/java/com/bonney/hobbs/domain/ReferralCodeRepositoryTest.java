@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.*;
 class ReferralCodeRepositoryTest {
 
     private ReferralCodeRepository repository;
+    private DSLContext dsl;
     private PilotId createdBy;
 
     @BeforeEach
@@ -30,7 +31,7 @@ class ReferralCodeRepositoryTest {
 
         Flyway.configure().dataSource(dataSource).load().migrate();
 
-        DSLContext dsl = DSL.using(dataSource, SQLDialect.H2);
+        dsl = DSL.using(dataSource, SQLDialect.H2);
         repository = new ReferralCodeRepository(dsl);
 
         Pilot pilot = randomPilot();
@@ -45,6 +46,27 @@ class ReferralCodeRepositoryTest {
         ReferralCode found = repository.findUnusedByCode("code").orElseThrow();
 
         assertThat(found.getInvitedEmail(), is("alice@example.com"));
+    }
+
+    @Test
+    void aCodeWithNoClaimsPilotIdReadsBackNull() {
+        repository.save(new ReferralCode("code", createdBy, OffsetDateTime.now(), "alice@example.com", OffsetDateTime.now().plusHours(1)));
+
+        ReferralCode found = repository.findUnusedByCode("code").orElseThrow();
+
+        assertThat(found.getClaimsPilotId(), is(nullValue()));
+    }
+
+    @Test
+    void aCodeScopedToClaimAPilotPersistsAndReadsBackThatPilotId() {
+        Pilot unclaimed = randomPilot();
+        new PilotRepository(dsl).save(unclaimed);
+        repository.save(new ReferralCode("claim-code", createdBy, OffsetDateTime.now(), "louis@example.com",
+                OffsetDateTime.now().plusHours(1), unclaimed.getId()));
+
+        ReferralCode found = repository.findUnusedByCode("claim-code").orElseThrow();
+
+        assertThat(found.getClaimsPilotId(), is(unclaimed.getId()));
     }
 
     @Test

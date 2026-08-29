@@ -1,12 +1,13 @@
 package com.bonney.hobbs.endpoint;
 
 import com.bonney.hobbs.SessionAuthFilter;
+import com.bonney.hobbs.domain.Account;
+import com.bonney.hobbs.domain.Accounts;
 import com.bonney.hobbs.domain.AdminRepository;
 import com.bonney.hobbs.domain.DuplicateEmailException;
 import com.bonney.hobbs.domain.EmailSender;
 import com.bonney.hobbs.domain.InvalidPageSizeException;
 import com.bonney.hobbs.domain.PasswordReset;
-import com.bonney.hobbs.domain.Pilot;
 import com.bonney.hobbs.domain.PilotId;
 import com.bonney.hobbs.domain.PilotListRow;
 import com.bonney.hobbs.domain.Pilots;
@@ -51,6 +52,7 @@ public class AdminEndpoint {
     private static final Set<String> SORT_ORDERS = Set.of("asc", "desc");
 
     private final Pilots pilots;
+    private final Accounts accounts;
     private final AdminRepository adminRepository;
     private final ReferralCodeRepository referralCodeRepository;
     private final EmailSender emailSender;
@@ -59,10 +61,11 @@ public class AdminEndpoint {
     private final Sessions sessions;
     private final PasswordReset passwordReset;
 
-    public AdminEndpoint(Pilots pilots, AdminRepository adminRepository, ReferralCodeRepository referralCodeRepository,
+    public AdminEndpoint(Pilots pilots, Accounts accounts, AdminRepository adminRepository, ReferralCodeRepository referralCodeRepository,
                           EmailSender emailSender, String frontendBaseUrl, int referralCodeTtlHours, Sessions sessions,
                           PasswordReset passwordReset) {
         this.pilots = pilots;
+        this.accounts = accounts;
         this.adminRepository = adminRepository;
         this.referralCodeRepository = referralCodeRepository;
         this.emailSender = emailSender;
@@ -119,7 +122,7 @@ public class AdminEndpoint {
 
         List<PilotListRow> rows = pilots.listActivePage(sort, order, page * pageSize, pageSize);
         List<PilotDto> pilotDtos = rows.stream()
-                .map(row -> PilotMapper.toPilotDto(row.pilot(), row.signedUpAt(), row.lastLoginAt()))
+                .map(row -> PilotMapper.toPilotDto(row.pilot(), row.email(), row.disabled(), row.signedUpAt(), row.lastLoginAt()))
                 .toList();
         int total = pilots.countActive();
         context.json(new PilotPageDto(pilotDtos, page, pageSize, total));
@@ -141,8 +144,8 @@ public class AdminEndpoint {
     )
     private void sendPasswordReset(Context context) {
         PilotId targetId = PilotId.from(context.pathParamAsClass("pilotId", UUID.class).get());
-        Pilot target = pilots.get(targetId).orElseThrow(NoSuchElementException::new);
-        passwordReset.requestReset(target.getEmail());
+        Account account = accounts.get(targetId).orElseThrow(NoSuchElementException::new);
+        passwordReset.requestReset(account.getEmail());
         logger.info("Admin sent a password reset link to pilotId={}", targetId);
     }
 
@@ -166,7 +169,7 @@ public class AdminEndpoint {
     )
     private void invitePilot(Context context) {
         InvitePilotDto request = context.bodyAsClass(InvitePilotDto.class);
-        if (pilots.findByEmail(request.getEmail()).isPresent()) {
+        if (accounts.findByEmail(request.getEmail()).isPresent()) {
             throw new DuplicateEmailException(request.getEmail());
         }
         PilotId adminId = context.attribute(SessionAuthFilter.AUTHENTICATED_PILOT_ID);
@@ -230,16 +233,22 @@ public class AdminEndpoint {
     @OpenApi(
         path = "/admin/pilot/{pilotId}",
         methods = HttpMethod.DELETE,
-        summary = "Delete a pilot account",
-        description = "Soft-deletes a pilot account. The pilot's logbook history is preserved. Admin only.",
+        summary = "Delete a pilot's account",
+        description = "Deletes a pilot's account (login credentials) - the Pilot record and their logged flight "
+                + "history are preserved under the same PilotId, which reverts to unclaimed and could be invited "
+                + "to claim again later. Admin only.",
         tags = {"Admin"},
         pathParams = @OpenApiParam(name = "pilotId", type = UUID.class, required = true),
-        responses = @OpenApiResponse(status = "200")
+        responses = {
+            @OpenApiResponse(status = "200"),
+            @OpenApiResponse(status = "404", description = "The target pilot has no account")
+        }
     )
     private void deletePilot(Context context) {
         PilotId targetId = PilotId.from(context.pathParamAsClass("pilotId", UUID.class).get());
-        pilots.delete(targetId);
-        logger.info("Admin deleted pilotId={}", targetId);
+        accounts.get(targetId).orElseThrow(NoSuchElementException::new);
+        accounts.delete(targetId);
+        logger.info("Admin deleted the account for pilotId={}", targetId);
     }
 
     @OpenApi(
@@ -258,11 +267,12 @@ public class AdminEndpoint {
         PilotId targetId = PilotId.from(context.pathParamAsClass("pilotId", UUID.class).get());
         UpdatePilotAdminDto request = context.bodyAsClass(UpdatePilotAdminDto.class);
         if (request.getEnabled() != null) {
+            accounts.get(targetId).orElseThrow(NoSuchElementException::new);
             if (request.getEnabled()) {
-                pilots.enable(targetId);
+                accounts.enable(targetId);
                 logger.info("Admin enabled pilotId={}", targetId);
             } else {
-                pilots.disable(targetId);
+                accounts.disable(targetId);
                 logger.info("Admin disabled pilotId={}", targetId);
             }
         }

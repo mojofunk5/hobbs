@@ -5,6 +5,7 @@ import java.time.Duration;
 public class Auth {
 
     private final Pilots pilots;
+    private final Accounts accounts;
     private final AuthIdentityRepository authIdentityRepository;
     private final Sessions sessions;
     private final PasswordHasher passwordHasher;
@@ -15,12 +16,13 @@ public class Auth {
     private final int loginThrottleMaxAttempts;
     private final Duration loginThrottleWindow;
 
-    public Auth(Pilots pilots, AuthIdentityRepository authIdentityRepository, Sessions sessions,
+    public Auth(Pilots pilots, Accounts accounts, AuthIdentityRepository authIdentityRepository, Sessions sessions,
                 PasswordHasher passwordHasher, AdminBootstrap adminBootstrap,
                 AdminRepository adminRepository, ReferralCodeRepository referralCodeRepository,
                 FailedAttemptRepository failedAttemptRepository, int loginThrottleMaxAttempts,
                 Duration loginThrottleWindow) {
         this.pilots = pilots;
+        this.accounts = accounts;
         this.authIdentityRepository = authIdentityRepository;
         this.sessions = sessions;
         this.passwordHasher = passwordHasher;
@@ -36,8 +38,9 @@ public class Auth {
         PasswordPolicy.validate(password);
 
         boolean isBootstrap = adminBootstrap.tryConsumeBootstrapCode(referralCode);
+        ReferralCode code = null;
         if (!isBootstrap) {
-            ReferralCode code = referralCodeRepository.findUnusedByCode(referralCode)
+            code = referralCodeRepository.findUnusedByCode(referralCode)
                     .orElseThrow(InvalidReferralCodeException::new);
             if (!code.getInvitedEmail().equals(email)) {
                 throw new InvalidReferralCodeException();
@@ -45,8 +48,20 @@ public class Auth {
         }
 
         Pilot pilot;
+        PilotId claimsPilotId = code == null ? null : code.getClaimsPilotId();
+        if (claimsPilotId != null) {
+            // Claiming an existing unclaimed Pilot (e.g. a co-pilot logged before they'd signed up) -
+            // the self-asserted name wins over whoever guessed it when creating the record.
+            pilot = pilots.get(claimsPilotId)
+                    .orElseThrow(() -> new IllegalStateException("Referral code claims a pilot that no longer exists: " + claimsPilotId));
+            pilots.updateName(pilot.getId(), name);
+            pilot = new Pilot(pilot.getId(), name, pilot.getCreatedBy());
+        } else {
+            pilot = pilots.create(name, null);
+        }
+
         try {
-            pilot = pilots.create(name, email);
+            accounts.create(pilot.getId(), email);
         } catch (DuplicateEmailException e) {
             // A referral code is scoped to one unused code per email (POST /admin/invite already
             // refuses to invite an email that's already a registered pilot), so a real duplicate
@@ -84,8 +99,11 @@ public class Auth {
             failedAttemptRepository.recordFailure(identifier, FailedAttemptPurpose.LOGIN, loginThrottleWindow);
             throw new InvalidCredentialsException();
         }
+        // No special-case needed for an accountless pilot attempting to log in: login is keyed off
+        // the AuthIdentity lookup above, so a Pilot with no account simply has no matching identity
+        // and fails before this point.
         Pilot pilot = pilots.get(identity.getPilotId()).orElse(null);
-        if (pilot == null || pilots.isDisabled(pilot.getId())) {
+        if (pilot == null || accounts.isDisabled(pilot.getId())) {
             failedAttemptRepository.recordFailure(identifier, FailedAttemptPurpose.LOGIN, loginThrottleWindow);
             throw new InvalidCredentialsException();
         }

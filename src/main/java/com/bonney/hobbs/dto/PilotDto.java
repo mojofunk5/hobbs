@@ -12,12 +12,12 @@ public class PilotDto {
     private final UUID id;
     private final String name;
     private final String email;
-    private final boolean disabled;
+    private final Boolean disabled;
     private final OffsetDateTime signedUpAt;
     private final OffsetDateTime lastLoginAt;
 
     public PilotDto(@JsonProperty("id") UUID id, @JsonProperty("name") String name,
-                      @JsonProperty("email") String email, @JsonProperty("disabled") boolean disabled,
+                      @JsonProperty("email") String email, @JsonProperty("disabled") Boolean disabled,
                       @JsonProperty("signedUpAt") OffsetDateTime signedUpAt,
                       @JsonProperty("lastLoginAt") OffsetDateTime lastLoginAt) {
         this.id = id;
@@ -40,7 +40,10 @@ public class PilotDto {
         return email;
     }
 
-    public boolean isDisabled() {
+    /**
+     * Null for a pilot with no account (an unclaimed record) - not the same as {@code false}.
+     */
+    public Boolean isDisabled() {
         return disabled;
     }
 

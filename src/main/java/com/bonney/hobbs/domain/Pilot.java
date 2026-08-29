@@ -9,18 +9,12 @@ public class Pilot {
 
     private final PilotId id;
     private final String name;
-    private final String email;
-    private final boolean disabled;
+    private final PilotId createdBy;
 
-    public Pilot(PilotId id, String name, String email) {
-        this(id, name, email, false);
-    }
-
-    public Pilot(PilotId id, String name, String email, boolean disabled) {
+    public Pilot(PilotId id, String name, PilotId createdBy) {
         this.id = id;
         this.name = name;
-        this.email = email;
-        this.disabled = disabled;
+        this.createdBy = createdBy;
     }
 
     public PilotId getId() {
@@ -31,12 +25,13 @@ public class Pilot {
         return name;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public boolean isDisabled() {
-        return disabled;
+    /**
+     * Who created this {@code Pilot} record - {@code null} for a self-registered pilot, or the
+     * inviting pilot's ID for a still-unclaimed record created on someone else's behalf (e.g. a
+     * co-pilot logged before they've signed up).
+     */
+    public PilotId getCreatedBy() {
+        return createdBy;
     }
 
     @Override
@@ -65,8 +60,7 @@ public class Pilot {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
                 .append("id", id)
                 .append("name", name)
-                .append("email", email)
-                .append("disabled", disabled)
+                .append("createdBy", createdBy)
                 .toString();
     }
 }

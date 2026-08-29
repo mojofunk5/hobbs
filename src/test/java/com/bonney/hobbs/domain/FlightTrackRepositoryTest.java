@@ -33,7 +33,7 @@ class FlightTrackRepositoryTest {
         DSLContext dsl = DSL.using(dataSource, SQLDialect.H2);
         repository = new FlightTrackRepository(dsl);
 
-        Pilot pilot = new Pilot(PilotId.random(), "William", "william@example.com");
+        Pilot pilot = new Pilot(PilotId.random(), "William", null);
         new PilotRepository(dsl).save(pilot);
         pilotId = pilot.getId();
     }

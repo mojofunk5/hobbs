@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,9 @@ class PasswordResetTest {
 
     @Mock
     Pilots pilots;
+
+    @Mock
+    Accounts accounts;
 
     @Mock
     AuthIdentityRepository authIdentityRepository;
@@ -46,21 +50,23 @@ class PasswordResetTest {
 
     PasswordReset passwordReset;
 
-    Pilot alice = new Pilot(PilotId.random(), "Alice", "alice@example.com");
+    Pilot alice = new Pilot(PilotId.random(), "Alice", null);
+    Account aliceAccount = new Account(alice.getId(), "alice@example.com", false);
 
     static final int THROTTLE_MAX_ATTEMPTS = 5;
     static final Duration THROTTLE_WINDOW = Duration.ofMinutes(15);
 
     @BeforeEach
     void setUp() {
-        passwordReset = new PasswordReset(pilots, authIdentityRepository, passwordHasher,
+        passwordReset = new PasswordReset(pilots, accounts, authIdentityRepository, passwordHasher,
                 passwordResetCodeRepository, sessions, emailSender, "http://localhost:5173", 30,
                 failedAttemptRepository, THROTTLE_MAX_ATTEMPTS, THROTTLE_WINDOW);
+        lenient().when(pilots.get(alice.getId())).thenReturn(Optional.of(alice));
     }
 
     @Test
     void requestResetForUnknownEmailDoesNothing() {
-        when(pilots.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+        when(accounts.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
 
         passwordReset.requestReset("nobody@example.com");
 
@@ -70,7 +76,7 @@ class PasswordResetTest {
 
     @Test
     void requestResetForKnownEmailInvalidatesOldCodesSavesANewOneAndEmailsIt() {
-        when(pilots.findByEmail("alice@example.com")).thenReturn(Optional.of(alice));
+        when(accounts.findByEmail("alice@example.com")).thenReturn(Optional.of(aliceAccount));
 
         passwordReset.requestReset("alice@example.com");
 
@@ -84,13 +90,13 @@ class PasswordResetTest {
         assertThrows(InvalidPasswordException.class,
                 () -> passwordReset.resetPassword("alice@example.com", "123456", "weak"));
 
-        verify(pilots, never()).findByEmail(any());
+        verify(accounts, never()).findByEmail(any());
         verify(passwordResetCodeRepository, never()).findUnusedByPilotIdAndCode(any(), any());
     }
 
     @Test
     void resetPasswordRejectsAnUnknownEmail() {
-        when(pilots.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+        when(accounts.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
 
         assertThrows(InvalidPasswordResetCodeException.class,
                 () -> passwordReset.resetPassword("nobody@example.com", "123456", "NewPassword1"));
@@ -101,7 +107,7 @@ class PasswordResetTest {
 
     @Test
     void resetPasswordRejectsAWrongOrExpiredCode() {
-        when(pilots.findByEmail("alice@example.com")).thenReturn(Optional.of(alice));
+        when(accounts.findByEmail("alice@example.com")).thenReturn(Optional.of(aliceAccount));
         when(passwordResetCodeRepository.findUnusedByPilotIdAndCode(alice.getId(), "999999")).thenReturn(Optional.empty());
 
         assertThrows(InvalidPasswordResetCodeException.class,
@@ -120,14 +126,14 @@ class PasswordResetTest {
         assertThrows(InvalidPasswordResetCodeException.class,
                 () -> passwordReset.resetPassword("alice@example.com", "123456", "NewPassword1"));
 
-        verify(pilots, never()).findByEmail(any());
+        verify(accounts, never()).findByEmail(any());
     }
 
     @Test
     void resetPasswordDoesNotRecordAFailureOnSuccess() {
         PasswordResetCode code = new PasswordResetCode(PasswordResetCodeId.random(), alice.getId(), "123456",
                 java.time.OffsetDateTime.now(), java.time.OffsetDateTime.now().plusMinutes(30));
-        when(pilots.findByEmail("alice@example.com")).thenReturn(Optional.of(alice));
+        when(accounts.findByEmail("alice@example.com")).thenReturn(Optional.of(aliceAccount));
         when(passwordResetCodeRepository.findUnusedByPilotIdAndCode(alice.getId(), "123456")).thenReturn(Optional.of(code));
         when(passwordHasher.hash("NewPassword1")).thenReturn("hashed");
         when(sessions.create(alice)).thenReturn(new Session(SessionId.random(), alice));
@@ -141,7 +147,7 @@ class PasswordResetTest {
     void resetPasswordUpdatesTheHashMarksTheCodeUsedAndReturnsASession() {
         PasswordResetCode code = new PasswordResetCode(PasswordResetCodeId.random(), alice.getId(), "123456",
                 java.time.OffsetDateTime.now(), java.time.OffsetDateTime.now().plusMinutes(30));
-        when(pilots.findByEmail("alice@example.com")).thenReturn(Optional.of(alice));
+        when(accounts.findByEmail("alice@example.com")).thenReturn(Optional.of(aliceAccount));
         when(passwordResetCodeRepository.findUnusedByPilotIdAndCode(alice.getId(), "123456")).thenReturn(Optional.of(code));
         when(passwordHasher.hash("NewPassword1")).thenReturn("hashed");
         Session expectedSession = new Session(SessionId.random(), alice);

@@ -24,6 +24,7 @@ public class ReferralCodeRepository {
                 .set(Tables.REFERRAL_CODE.CREATED_AT, code.getCreatedAt())
                 .set(Tables.REFERRAL_CODE.INVITED_EMAIL, code.getInvitedEmail())
                 .set(Tables.REFERRAL_CODE.EXPIRES_AT, code.getExpiresAt())
+                .set(Tables.REFERRAL_CODE.CLAIMS_PILOT_ID, code.getClaimsPilotId() == null ? null : code.getClaimsPilotId().value())
                 .execute();
     }
 
@@ -34,7 +35,8 @@ public class ReferralCodeRepository {
                 .and(Tables.REFERRAL_CODE.CANCELLED_AT.isNull())
                 .and(Tables.REFERRAL_CODE.EXPIRES_AT.gt(OffsetDateTime.now()))
                 .fetchOptional()
-                .map(r -> new ReferralCode(r.getCode(), PilotId.from(r.getCreatedBy()), r.getCreatedAt(), r.getInvitedEmail(), r.getExpiresAt()));
+                .map(r -> new ReferralCode(r.getCode(), PilotId.from(r.getCreatedBy()), r.getCreatedAt(), r.getInvitedEmail(), r.getExpiresAt(),
+                        r.getClaimsPilotId() == null ? null : PilotId.from(r.getClaimsPilotId())));
     }
 
     // Collapsed to one row per email (the most recent) - an admin re-inviting the same address
@@ -49,7 +51,8 @@ public class ReferralCodeRepository {
                 .orderBy(Tables.REFERRAL_CODE.CREATED_AT.desc())
                 .fetch()
                 .forEach(r -> latestByEmail.putIfAbsent(r.getInvitedEmail(),
-                        new ReferralCode(r.getCode(), PilotId.from(r.getCreatedBy()), r.getCreatedAt(), r.getInvitedEmail(), r.getExpiresAt())));
+                        new ReferralCode(r.getCode(), PilotId.from(r.getCreatedBy()), r.getCreatedAt(), r.getInvitedEmail(), r.getExpiresAt(),
+                                r.getClaimsPilotId() == null ? null : PilotId.from(r.getClaimsPilotId()))));
         return List.copyOf(latestByEmail.values());
     }
 

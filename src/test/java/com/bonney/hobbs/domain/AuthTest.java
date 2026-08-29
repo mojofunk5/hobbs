@@ -29,6 +29,9 @@ class AuthTest {
     Pilots pilots;
 
     @Mock
+    Accounts accounts;
+
+    @Mock
     AuthIdentityRepository authIdentityRepository;
 
     @Mock
@@ -51,14 +54,14 @@ class AuthTest {
 
     Auth auth;
 
-    Pilot alice = new Pilot(PilotId.random(), "Alice", "alice@example.com");
+    Pilot alice = new Pilot(PilotId.random(), "Alice", null);
 
     static final int LOGIN_THROTTLE_MAX_ATTEMPTS = 10;
     static final Duration LOGIN_THROTTLE_WINDOW = Duration.ofMinutes(15);
 
     @BeforeEach
     void setUp() {
-        auth = new Auth(pilots, authIdentityRepository, sessions, passwordHasher,
+        auth = new Auth(pilots, accounts, authIdentityRepository, sessions, passwordHasher,
                 adminBootstrap, adminRepository, referralCodeRepository, failedAttemptRepository,
                 LOGIN_THROTTLE_MAX_ATTEMPTS, LOGIN_THROTTLE_WINDOW);
     }
@@ -73,12 +76,13 @@ class AuthTest {
         void createsPilotAndAuthIdentityWithReferralCode() {
             when(adminBootstrap.tryConsumeBootstrapCode("valid-code")).thenReturn(false);
             when(referralCodeRepository.findUnusedByCode("valid-code")).thenReturn(Optional.of(validCode));
-            when(pilots.create("Alice", "alice@example.com")).thenReturn(alice);
+            when(pilots.create("Alice", null)).thenReturn(alice);
             when(passwordHasher.hash("Password123")).thenReturn("hashed");
 
             auth.register("Alice", "alice@example.com", "Password123", "valid-code");
 
-            verify(pilots).create("Alice", "alice@example.com");
+            verify(pilots).create("Alice", null);
+            verify(accounts).create(alice.getId(), "alice@example.com");
             verify(authIdentityRepository).save(any(AuthIdentity.class));
             verify(referralCodeRepository).markUsed("valid-code", alice.getId());
             verify(authIdentityRepository).touchLastLogin(alice.getId(), AuthIdentityType.PASSWORD);
@@ -88,7 +92,7 @@ class AuthTest {
         void returnsSessionForNewPilot() {
             when(adminBootstrap.tryConsumeBootstrapCode("valid-code")).thenReturn(false);
             when(referralCodeRepository.findUnusedByCode("valid-code")).thenReturn(Optional.of(validCode));
-            when(pilots.create("Alice", "alice@example.com")).thenReturn(alice);
+            when(pilots.create("Alice", null)).thenReturn(alice);
             when(passwordHasher.hash("Password123")).thenReturn("hashed");
             Session expectedSession = new Session(SessionId.random(), alice);
             when(sessions.create(alice)).thenReturn(expectedSession);
@@ -126,7 +130,7 @@ class AuthTest {
         @Test
         void bootstrapCodeGrantsAdmin() {
             when(adminBootstrap.tryConsumeBootstrapCode("bootstrap")).thenReturn(true);
-            when(pilots.create("Alice", "alice@example.com")).thenReturn(alice);
+            when(pilots.create("Alice", null)).thenReturn(alice);
             when(passwordHasher.hash("Password123")).thenReturn("hashed");
 
             auth.register("Alice", "alice@example.com", "Password123", "bootstrap");
@@ -153,13 +157,35 @@ class AuthTest {
             // give the public registration endpoint an account-enumeration oracle.
             when(adminBootstrap.tryConsumeBootstrapCode("valid-code")).thenReturn(false);
             when(referralCodeRepository.findUnusedByCode("valid-code")).thenReturn(Optional.of(validCode));
-            when(pilots.create("Alice", "alice@example.com")).thenThrow(new DuplicateEmailException("alice@example.com"));
+            when(pilots.create("Alice", null)).thenReturn(alice);
+            org.mockito.Mockito.doThrow(new DuplicateEmailException("alice@example.com"))
+                    .when(accounts).create(alice.getId(), "alice@example.com");
 
             RuntimeException thrown = assertThrows(RuntimeException.class,
                     () -> auth.register("Alice", "alice@example.com", "Password123", "valid-code"));
 
             assertThat(thrown, is(not(instanceOf(DuplicateEmailException.class))));
             verify(referralCodeRepository, never()).markUsed(any(), any());
+        }
+
+        @Test
+        void aCodeScopedToClaimAnExistingPilotAttachesToItInsteadOfCreatingANewOne() {
+            Pilot unclaimed = new Pilot(PilotId.random(), "Guess At Name", PilotId.random());
+            ReferralCode claimCode = new ReferralCode("claim-code", PilotId.random(), java.time.OffsetDateTime.now(),
+                    "louis@example.com", java.time.OffsetDateTime.now().plusHours(24), unclaimed.getId());
+            when(adminBootstrap.tryConsumeBootstrapCode("claim-code")).thenReturn(false);
+            when(referralCodeRepository.findUnusedByCode("claim-code")).thenReturn(Optional.of(claimCode));
+            when(pilots.get(unclaimed.getId())).thenReturn(Optional.of(unclaimed));
+            when(passwordHasher.hash("Password123")).thenReturn("hashed");
+            when(sessions.create(any())).thenAnswer(invocation -> new Session(SessionId.random(), invocation.getArgument(0)));
+
+            Session session = auth.register("Louis", "louis@example.com", "Password123", "claim-code");
+
+            verify(pilots, never()).create(any(), any());
+            verify(pilots).updateName(unclaimed.getId(), "Louis");
+            verify(accounts).create(unclaimed.getId(), "louis@example.com");
+            assertThat(session.getPilot().getId(), is(unclaimed.getId()));
+            assertThat(session.getPilot().getName(), is("Louis"));
         }
     }
 
@@ -175,7 +201,7 @@ class AuthTest {
                     .thenReturn(Optional.of(aliceIdentity));
             when(passwordHasher.verify("password123", "hashed")).thenReturn(true);
             when(pilots.get(alice.getId())).thenReturn(Optional.of(alice));
-            when(pilots.isDisabled(alice.getId())).thenReturn(false);
+            when(accounts.isDisabled(alice.getId())).thenReturn(false);
             Session expectedSession = new Session(SessionId.random(), alice);
             when(sessions.create(alice)).thenReturn(expectedSession);
 
@@ -212,7 +238,7 @@ class AuthTest {
                     .thenReturn(Optional.of(aliceIdentity));
             when(passwordHasher.verify("password123", "hashed")).thenReturn(true);
             when(pilots.get(alice.getId())).thenReturn(Optional.of(alice));
-            when(pilots.isDisabled(alice.getId())).thenReturn(true);
+            when(accounts.isDisabled(alice.getId())).thenReturn(true);
 
             assertThrows(InvalidCredentialsException.class, () -> auth.login("alice@example.com", "password123"));
         }
@@ -263,7 +289,7 @@ class AuthTest {
                     .thenReturn(Optional.of(aliceIdentity));
             when(passwordHasher.verify("password123", "hashed")).thenReturn(true);
             when(pilots.get(alice.getId())).thenReturn(Optional.of(alice));
-            when(pilots.isDisabled(alice.getId())).thenReturn(false);
+            when(accounts.isDisabled(alice.getId())).thenReturn(false);
             when(sessions.create(alice)).thenReturn(new Session(SessionId.random(), alice));
 
             auth.login("alice@example.com", "password123");
@@ -280,7 +306,7 @@ class AuthTest {
                     .thenReturn(Optional.of(aliceIdentity));
             when(passwordHasher.verify("weak", "hashed")).thenReturn(true);
             when(pilots.get(alice.getId())).thenReturn(Optional.of(alice));
-            when(pilots.isDisabled(alice.getId())).thenReturn(false);
+            when(accounts.isDisabled(alice.getId())).thenReturn(false);
             Session expectedSession = new Session(SessionId.random(), alice);
             when(sessions.create(alice)).thenReturn(expectedSession);
 

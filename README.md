@@ -80,7 +80,12 @@ is deliberately hard to come by, so that being open source doesn't mean being op
 
 Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
 
-- **Pilot** - the account holder / logbook owner
+- **Pilot** - someone recordable on a flight (PIC, co-pilot, instructor); just `id`/`name`/who created
+  it. Not the same as an account - see **Account** below
+- **Account** - the login/email/enabled-state half of a `Pilot`, one-to-one with a `Pilot` via
+  `pilot_id`. A `Pilot` has an account iff a matching `Account` row exists; a `Pilot` with none is an
+  "unclaimed" record, e.g. a co-pilot logged before they'd signed up. See
+  [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md) for the full design.
 - **Aircraft** - registration, make, model, engine category. Shared across pilots, not scoped to one
   account (a club trainer only needs registering once)
 - **FlightEntry** - one row of the logbook: date, departure/arrival (place + time), PIC name, and
@@ -100,9 +105,11 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   night-time-from-sunset-tables, cross-country distance) - currently `FlightEntry` and `FlightTrack`
   exist as separate persisted things with no automatic bridge between them yet
 - Pagination/filtering on `GET /flight` (currently returns everything for the authenticated pilot)
-- Separating "a person recordable on a flight" (PIC, co-pilot, instructor) from "an account holder" -
-  today `Pilot` conflates the two, so a co-pilot who hasn't signed up can't be recorded by name as a
-  real `Pilot` row
+- `FlightEntry`/`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId` - the pilot/account
+  split above makes an unclaimed `Pilot` record possible, but nothing in the flight domain points at
+  one yet; `pic_name` stays free text for now
+- Merging two `Pilot` records (e.g. someone who registered their own account instead of using an
+  invite that would've attached them to an unclaimed record someone else already created)
 - Logbook entry screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) - see that repo's `docs/architecture-brief.md`
   for the roadmap

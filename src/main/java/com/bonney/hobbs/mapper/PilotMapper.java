@@ -11,7 +11,7 @@ public class PilotMapper {
         super();
     }
 
-    public static PilotDto toPilotDto(Pilot domain, OffsetDateTime signedUpAt, OffsetDateTime lastLoginAt) {
-        return new PilotDto(domain.getId().value(), domain.getName(), domain.getEmail(), domain.isDisabled(), signedUpAt, lastLoginAt);
+    public static PilotDto toPilotDto(Pilot domain, String email, Boolean disabled, OffsetDateTime signedUpAt, OffsetDateTime lastLoginAt) {
+        return new PilotDto(domain.getId().value(), domain.getName(), email, disabled, signedUpAt, lastLoginAt);
     }
 }

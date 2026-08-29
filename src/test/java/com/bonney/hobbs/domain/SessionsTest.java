@@ -26,7 +26,7 @@ class SessionsTest {
 
     Sessions sessions;
 
-    Pilot alice = new Pilot(PilotId.random(), "Alice", "alice@example.com");
+    Pilot alice = new Pilot(PilotId.random(), "Alice", null);
 
     @BeforeEach
     void setUp() {

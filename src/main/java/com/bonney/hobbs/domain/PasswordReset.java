@@ -18,6 +18,7 @@ public class PasswordReset {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final Pilots pilots;
+    private final Accounts accounts;
     private final AuthIdentityRepository authIdentityRepository;
     private final PasswordHasher passwordHasher;
     private final PasswordResetCodeRepository passwordResetCodeRepository;
@@ -29,12 +30,13 @@ public class PasswordReset {
     private final int throttleMaxAttempts;
     private final Duration throttleWindow;
 
-    public PasswordReset(Pilots pilots, AuthIdentityRepository authIdentityRepository, PasswordHasher passwordHasher,
+    public PasswordReset(Pilots pilots, Accounts accounts, AuthIdentityRepository authIdentityRepository, PasswordHasher passwordHasher,
                           PasswordResetCodeRepository passwordResetCodeRepository, Sessions sessions,
                           EmailSender emailSender, String frontendBaseUrl, int ttlMinutes,
                           FailedAttemptRepository failedAttemptRepository, int throttleMaxAttempts,
                           Duration throttleWindow) {
         this.pilots = pilots;
+        this.accounts = accounts;
         this.authIdentityRepository = authIdentityRepository;
         this.passwordHasher = passwordHasher;
         this.passwordResetCodeRepository = passwordResetCodeRepository;
@@ -51,12 +53,13 @@ public class PasswordReset {
     // registration duplicate-email fix. Callers can't tell whether an email is registered from this
     // endpoint's response either way.
     public void requestReset(String email) {
-        Optional<Pilot> pilot = pilots.findByEmail(email);
-        if (pilot.isEmpty()) {
+        Optional<Account> account = accounts.findByEmail(email);
+        if (account.isEmpty()) {
             return;
         }
 
-        PilotId pilotId = pilot.get().getId();
+        PilotId pilotId = account.get().getPilotId();
+        Pilot pilot = pilots.get(pilotId).orElseThrow();
         passwordResetCodeRepository.invalidateUnusedForPilot(pilotId);
         String code = generateCode();
         OffsetDateTime now = OffsetDateTime.now();
@@ -67,7 +70,7 @@ public class PasswordReset {
         try {
             String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
             String link = frontendBaseUrl + "/reset-password?email=" + encodedEmail + "&code=" + code;
-            EmailTemplate template = new PasswordResetEmailTemplate(pilot.get().getName(), link, code, ttlMinutes);
+            EmailTemplate template = new PasswordResetEmailTemplate(pilot.getName(), link, code, ttlMinutes);
             emailSender.send(email, template.subject(), template.htmlBody());
         } catch (RuntimeException e) {
             logger.warn("Failed to send password reset email to={}, code is still valid and can be shared manually", email, e);
@@ -83,7 +86,8 @@ public class PasswordReset {
             throw new InvalidPasswordResetCodeException();
         }
 
-        Pilot pilot = pilots.findByEmail(email).orElse(null);
+        Account account = accounts.findByEmail(email).orElse(null);
+        Pilot pilot = account == null ? null : pilots.get(account.getPilotId()).orElse(null);
         PasswordResetCode resetCode = pilot == null ? null
                 : passwordResetCodeRepository.findUnusedByPilotIdAndCode(pilot.getId(), code).orElse(null);
         if (pilot == null || resetCode == null) {

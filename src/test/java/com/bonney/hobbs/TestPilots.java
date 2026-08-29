@@ -10,4 +10,8 @@ public class TestPilots {
     public static Pilot randomPilot() {
         return new Pilot(PilotId.random(), randomAlphanumeric(10), null);
     }
+
+    public static Pilot randomPilot(PilotId createdBy) {
+        return new Pilot(PilotId.random(), randomAlphanumeric(10), createdBy);
+    }
 }

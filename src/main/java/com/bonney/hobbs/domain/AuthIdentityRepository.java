@@ -17,6 +17,12 @@ public class AuthIdentityRepository {
         this.dsl = dsl;
     }
 
+    public void deleteByPilotId(PilotId pilotId) {
+        dsl.deleteFrom(AUTH_IDENTITY)
+                .where(AUTH_IDENTITY.PILOT_ID.eq(pilotId.value()))
+                .execute();
+    }
+
     public void save(AuthIdentity identity) {
         dsl.insertInto(AUTH_IDENTITY)
                 .set(AUTH_IDENTITY.ID, identity.getId().value())
@@ -25,6 +31,14 @@ public class AuthIdentityRepository {
                 .set(AUTH_IDENTITY.IDENTIFIER, identity.getIdentifier())
                 .set(AUTH_IDENTITY.HASHED_CREDENTIAL, identity.getHashedCredential())
                 .set(AUTH_IDENTITY.CREATED_AT, OffsetDateTime.now())
+                .execute();
+    }
+
+    public void updateIdentifier(PilotId pilotId, AuthIdentityType type, String identifier) {
+        dsl.update(AUTH_IDENTITY)
+                .set(AUTH_IDENTITY.IDENTIFIER, identifier)
+                .where(AUTH_IDENTITY.PILOT_ID.eq(pilotId.value()))
+                .and(AUTH_IDENTITY.TYPE.eq(type.name()))
                 .execute();
     }
 

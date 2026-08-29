@@ -5,11 +5,14 @@ import com.bonney.hobbs.HobbsApplication;
 import com.bonney.hobbs.client.HobbsClient;
 import com.bonney.hobbs.domain.EngineCategory;
 import com.bonney.hobbs.dto.AircraftDto;
+import com.bonney.hobbs.dto.ClaimInviteRequestDto;
 import com.bonney.hobbs.dto.CreateAircraftDto;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
-import com.bonney.hobbs.dto.FlightEntryDto;
 import com.bonney.hobbs.dto.CreatePilotDto;
+import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
+import com.bonney.hobbs.dto.FlightEntryDto;
 import com.bonney.hobbs.dto.InvitePilotDto;
+import com.bonney.hobbs.dto.PilotSummaryDto;
 import com.bonney.hobbs.dto.LoginDto;
 import com.bonney.hobbs.dto.PasswordResetConfirmDto;
 import com.bonney.hobbs.dto.PasswordResetRequestDto;
@@ -836,6 +839,84 @@ class HobbsApplicationIntegrationTest {
                 () -> createClient().register(new RegisterDto("Alice", "alice2@example.com", "Password123", "not-a-real-code")));
     }
 
+
+    @Test
+    void anUnclaimedPilotAppearsInTheAdminListWithNullEmailAndDisabled() {
+        HobbsClient william = createAuthenticatedClient();
+
+        PilotSummaryDto louis = william.createPilot(new CreateUnclaimedPilotDto("Louis"));
+
+        PilotDto listed = adminClient.adminListPilots(0, 100, "name", "asc").getPilots().stream()
+                .filter(p -> p.getId().equals(louis.getId()))
+                .findFirst().orElseThrow();
+        assertThat(listed.getName(), is("Louis"));
+        assertThat(listed.getEmail(), is((String) null));
+        assertThat(listed.isDisabled(), is((Boolean) null));
+    }
+
+    @Test
+    void invitingAnUnclaimedPilotToClaimLetsThemRegisterAsThatSamePilotId() {
+        HobbsClient william = createAuthenticatedClient();
+        PilotSummaryDto louis = william.createPilot(new CreateUnclaimedPilotDto("Louis"));
+
+        String code = william.inviteToClaimPilot(louis.getId(), new ClaimInviteRequestDto("louis@example.com")).getCode();
+        SessionDto session = createClient().register(new RegisterDto("Louis Actual Name", "louis@example.com", "Password123", code));
+
+        assertThat(session.getPilotId(), is(louis.getId()));
+        assertThat(session.getName(), is("Louis Actual Name"));
+    }
+
+    @Test
+    void onlyTheCreatorOrAnAdminCanInviteAnUnclaimedPilotToClaim() {
+        HobbsClient william = createAuthenticatedClient();
+        HobbsClient mallory = createAuthenticatedClient();
+        PilotSummaryDto louis = william.createPilot(new CreateUnclaimedPilotDto("Louis"));
+
+        assertThrows(FeignException.Forbidden.class,
+                () -> mallory.inviteToClaimPilot(louis.getId(), new ClaimInviteRequestDto("louis2@example.com")));
+    }
+
+    @Test
+    void anAdminCanInviteAnyUnclaimedPilotToClaimEvenWithoutHavingCreatedIt() {
+        HobbsClient william = createAuthenticatedClient();
+        PilotSummaryDto louis = william.createPilot(new CreateUnclaimedPilotDto("Louis"));
+
+        ReferralCodeDto invite = adminClient.inviteToClaimPilot(louis.getId(), new ClaimInviteRequestDto("louis-admin@example.com"));
+
+        assertThat(invite.getCode(), is(notNullValue()));
+    }
+
+    @Test
+    void deletingAnAccountPreservesTheFlightHistoryUnderTheSamePilotIdAsAnUnclaimedRecord() {
+        SessionDto session = register("Del2", "del-flighthistory@example.com", "Password123");
+        HobbsClient authedClient = createAuthenticatedClient(session.getSessionId());
+        UUID aircraftId = authedClient.createAircraft(new CreateAircraftDto("G-KEEP", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        FlightEntryDto flight = authedClient.createFlightEntry(aFlightEntry(aircraftId, null));
+
+        authedClient.deletePilot(session.getPilotId());
+
+        // The pre-existing session isn't invalidated by account deletion (SessionAuthFilter only
+        // checks session validity, not account status, on each request - same documented gap as
+        // disable), so it's still usable here purely to prove the flight entry itself survived.
+        FlightEntryDto stillThere = authedClient.getFlightEntry(flight.getId());
+        assertThat(stillThere.getId(), is(flight.getId()));
+        PilotDto listed = adminClient.adminListPilots(0, 100, "name", "asc").getPilots().stream()
+                .filter(p -> p.getId().equals(session.getPilotId()))
+                .findFirst().orElseThrow();
+        assertThat(listed.getEmail(), is((String) null));
+        assertThat(listed.isDisabled(), is((Boolean) null));
+    }
+
+    @Test
+    void anAdminCanReInviteAPilotWhoseAccountWasDeleted() {
+        SessionDto session = register("Revivable", "revivable@example.com", "Password123");
+        adminClient.adminDeletePilot(session.getPilotId());
+
+        String freshCode = adminClient.invitePilot(new InvitePilotDto("revivable-new@example.com", null)).getCode();
+        SessionDto reRegistered = createClient().register(new RegisterDto("Revivable", "revivable-new@example.com", "Password123", freshCode));
+
+        assertThat(reRegistered.getPilotId(), is(not(session.getPilotId())));
+    }
 
     private String extractResetCode(String email) {
         RecordingEmailSender.SentEmail lastSent = emailSender.getSent().stream()
