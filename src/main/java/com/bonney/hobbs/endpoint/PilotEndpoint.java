@@ -126,8 +126,9 @@ public class PilotEndpoint {
     @OpenApi(
         path = "/pilot/{pilotId}",
         methods = HttpMethod.DELETE,
-        summary = "Delete a pilot",
-        description = "Deletes a pilot by ID.",
+        summary = "Delete your own account",
+        description = "Deletes your account (login credentials) - the Pilot record and your logged flight history "
+                + "are preserved under the same PilotId, which reverts to unclaimed.",
         tags = {"Pilot"},
         pathParams = @OpenApiParam(name = "pilotId", type = UUID.class, required = true),
         responses = {
@@ -141,8 +142,8 @@ public class PilotEndpoint {
             context.status(HttpStatus.FORBIDDEN);
             return;
         }
-        logger.info("Deleting pilot with pilotId={}", pilotId);
-        pilots.delete(pilotId);
+        logger.info("Deleting the account for pilotId={}", pilotId);
+        accounts.delete(pilotId);
     }
 
     @OpenApi(

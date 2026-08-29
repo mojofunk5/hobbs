@@ -97,6 +97,26 @@ class AccountRepositoryTest {
     }
 
     @Test
+    void deleteRemovesTheAccountRowEntirely() {
+        repository.create(pilotId, "alice@example.com");
+
+        repository.delete(pilotId);
+
+        assertThat(repository.get(pilotId), is(Optional.empty()));
+    }
+
+    @Test
+    void deletingAnAccountFreesUpItsEmailForReuse() {
+        repository.create(pilotId, "alice@example.com");
+        repository.delete(pilotId);
+        PilotId otherPilotId = newPilotId();
+
+        repository.create(otherPilotId, "alice@example.com");
+
+        assertThat(repository.findByEmail("alice@example.com").orElseThrow().getPilotId(), is(otherPilotId));
+    }
+
+    @Test
     void disableMarksTheAccountDisabled() {
         repository.create(pilotId, "alice@example.com");
 

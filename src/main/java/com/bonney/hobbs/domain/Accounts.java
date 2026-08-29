@@ -26,6 +26,17 @@ public class Accounts {
         authIdentityRepository.updateIdentifier(pilotId, AuthIdentityType.PASSWORD, newEmail);
     }
 
+    // Deleting an account means removing login capability, not the Pilot record itself - the pilot's
+    // logged flight history stays attributed to the same PilotId, which reverts to unclaimed (no
+    // account) exactly as if it had never been registered. Also deletes every AuthIdentity for this
+    // pilot, not just disables the account: leaving a PASSWORD identity behind with no Account row
+    // would let a stale hashed credential still authenticate, since Auth.login's disabled check only
+    // runs after a successful identity lookup.
+    public void delete(PilotId pilotId) {
+        repository.delete(pilotId);
+        authIdentityRepository.deleteByPilotId(pilotId);
+    }
+
     public void disable(PilotId pilotId) {
         repository.disable(pilotId);
     }

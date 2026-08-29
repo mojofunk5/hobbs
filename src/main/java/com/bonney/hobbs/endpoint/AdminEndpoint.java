@@ -233,16 +233,22 @@ public class AdminEndpoint {
     @OpenApi(
         path = "/admin/pilot/{pilotId}",
         methods = HttpMethod.DELETE,
-        summary = "Delete a pilot account",
-        description = "Soft-deletes a pilot account. The pilot's logbook history is preserved. Admin only.",
+        summary = "Delete a pilot's account",
+        description = "Deletes a pilot's account (login credentials) - the Pilot record and their logged flight "
+                + "history are preserved under the same PilotId, which reverts to unclaimed and could be invited "
+                + "to claim again later. Admin only.",
         tags = {"Admin"},
         pathParams = @OpenApiParam(name = "pilotId", type = UUID.class, required = true),
-        responses = @OpenApiResponse(status = "200")
+        responses = {
+            @OpenApiResponse(status = "200"),
+            @OpenApiResponse(status = "404", description = "The target pilot has no account")
+        }
     )
     private void deletePilot(Context context) {
         PilotId targetId = PilotId.from(context.pathParamAsClass("pilotId", UUID.class).get());
-        pilots.delete(targetId);
-        logger.info("Admin deleted pilotId={}", targetId);
+        accounts.get(targetId).orElseThrow(NoSuchElementException::new);
+        accounts.delete(targetId);
+        logger.info("Admin deleted the account for pilotId={}", targetId);
     }
 
     @OpenApi(

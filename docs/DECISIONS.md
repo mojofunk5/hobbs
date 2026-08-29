@@ -28,6 +28,12 @@ both columns in this same PR instead of waiting. Merging two `Pilot` records (e.
 registered independently instead of via an invite) and referencing a co-pilot's `PilotId` from
 `FlightEntry` are both explicitly out of scope, left for later plans.
 
+**Correction, same day:** the first implementation pass left account deletion soft-deleting the
+`Pilot` row itself, unchanged from before this split. Corrected: disable/enable/delete all act on
+`Account`, never `Pilot` - a `Pilot`'s logged flight history must survive its account being deleted,
+exactly as it already survives an account never having existed. `pilot.deleted_at` was dropped as a
+result (`V5__drop_pilot_deleted_at.sql`, same no-real-data reasoning as above).
+
 ## 2026-08-29: Branch protection + auto-delete-on-merge added retroactively
 
 Both `hobbs` and `hobbs-ui` are public GitHub repos, so real branch protection (require a PR, require

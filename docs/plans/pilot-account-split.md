@@ -6,6 +6,18 @@ Everything in Design/Migration/New endpoints below is built and tested, includin
 so the usual contract-phase wait didn't apply). The "Explicitly out of scope" items at the bottom
 remain exactly that - not part of this change.
 
+**Correction post-implementation (2026-08-29):** the first pass of this implementation left
+`DELETE /pilot/{pilotId}` and `DELETE /admin/pilot/{pilotId}` soft-deleting the `Pilot` row itself
+(via `pilot.deleted_at`), unchanged from how they worked before this plan. Andy caught this: *"We
+would disable/enable and delete accounts not pilots. That's the decision."* Consistent with
+`email`/`disabled` moving to `Account`, delete belongs there too - a `Pilot`'s logged flight history
+must survive its account being removed, exactly as it already survives an account never having
+existed (the unclaimed case). Fixed to delete the `Account` row plus every `AuthIdentity` for that
+pilot (not just disable them - see Design section 4 below), leaving `Pilot` completely untouched.
+Also meant `pilot.deleted_at` itself was dead weight, since nothing sets it anymore - dropped in the
+same follow-up (`V5__drop_pilot_deleted_at.sql`), same reasoning as dropping `pilot.email`/
+`disabled_at` above (no real data deployed yet).
+
 ## Context
 
 Today `Pilot` conflates three things: "a person recordable on a flight," "an account holder," and
@@ -140,6 +152,23 @@ producing a **new**, separate `PilotId`, with its own new `account` row. His old
 row is untouched, still has no account. Acknowledged, expected outcome - a future merge capability
 (explicitly out of scope) would reconcile the two later.
 
+### 4. Deleting an account (not a pilot)
+
+`DELETE /pilot/{pilotId}` (self-service) and `DELETE /admin/pilot/{pilotId}` (admin) both delete the
+`Account` row and every `AuthIdentity` row for that pilot - never the `Pilot` row. This reverts the
+`Pilot` to unclaimed (indistinguishable from one that was never registered), so its logged flight
+history stays attached to the same `PilotId`, and an admin (or whoever originally created it, if
+`created_by` is set) can invite it to be claimed again later exactly like any other unclaimed pilot.
+
+Deleting the `AuthIdentity` rows too, not just the `Account` row, matters: `Auth.login` only checks
+`accounts.isDisabled(...)` *after* a successful `AuthIdentity` lookup succeeds. Leaving a `PASSWORD`
+identity behind with no matching `Account` would mean `isDisabled` finds no account row at all (not
+"account found and disabled"), silently letting a stale password hash keep authenticating.
+
+Same known pre-existing gap as disable: an already-issued session isn't invalidated by this (checked
+only at login, not per-request by `SessionAuthFilter`) - not fixed here, not created by this change
+either.
+
 ### Auth/login changes
 
 `Auth.login`: `accounts.isDisabled(pilot.getId())` replaces `pilots.isDisabled(...)`. No special-case
@@ -212,6 +241,8 @@ as the expand phase, rather than waiting.
 | `GET` | `/admin/pilots` | **Response shape change.** `email`/`disabled` become nullable (unclaimed pilots now appear in the list with both null, instead of not existing at all). |
 | `PATCH` | `/admin/pilot/{pilotId}` | Same shape; now 400/404 if the target has no account. |
 | `POST` | `/admin/pilot/{pilotId}/password-reset` | Same shape; now 400/404 if the target has no account. |
+| `DELETE` | `/pilot/{pilotId}` | **Changed behavior, same shape.** Deletes the caller's `Account`/`AuthIdentity`, not the `Pilot` - see Design section 4. |
+| `DELETE` | `/admin/pilot/{pilotId}` | **Changed behavior, same shape.** Deletes the target's `Account`/`AuthIdentity`, not the `Pilot`; now 404 if the target has no account. |
 
 No change to `RegisterDto`, `LoginDto`, or any password-reset DTO - `hobbs-ui` needs zero changes for
 this plan.
@@ -220,8 +251,9 @@ this plan.
 
 - `PilotsTest`: `create(name, createdBy)` with and without a creator.
 - New `AccountsTest`/`AccountRepositoryTest`: `create`/`updateEmail` (asserting it also updates
-  `AuthIdentity.identifier`)/`disable`/`enable`/`isDisabled`/`findByEmail`, including the duplicate-
-  email case (two different pilots, `account_email_unique` violation).
+  `AuthIdentity.identifier`)/`delete` (asserting it also deletes the `AuthIdentity` rows, and frees
+  the email for reuse)/`disable`/`enable`/`isDisabled`/`findByEmail`, including the duplicate-email
+  case (two different pilots, `account_email_unique` violation).
 - `AuthTest`: registering via a `claimsPilotId`-scoped code attaches to the existing pilot and
   updates its name; existing non-claiming register/bootstrap/disabled-login tests still pass
   unchanged (just re-point their setup to create the account row via the new path).
@@ -231,6 +263,8 @@ this plan.
   nullable `email`/`disabled` shape, add a case asserting an unclaimed pilot shows up in the list
   with both null.
 - `ReferralCodeRepositoryTest`: `claimsPilotId` persists/reads, including the null case unaffected.
+- Integration test asserting deleting an account preserves the `Pilot`'s logged flight history under
+  the same `PilotId`, and that pilot can be re-invited afterwards.
 - Full `./gradlew test` run to confirm the migration and jOOQ codegen changes don't break anything.
 
 ## Explicitly out of scope (confirmed with Andy)

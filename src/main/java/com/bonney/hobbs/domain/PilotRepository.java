@@ -1,12 +1,10 @@
 package com.bonney.hobbs.domain;
 
-import com.bonney.hobbs.jooq.Tables;
 import com.bonney.hobbs.jooq.tables.records.PilotRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SortField;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,14 +43,12 @@ public class PilotRepository {
         return Optional.ofNullable(
                 dsl.selectFrom(PILOT)
                         .where(PILOT.ID.eq(id.value()))
-                        .and(PILOT.DELETED_AT.isNull())
                         .fetchOne())
                 .map(PilotRepository::toPilot);
     }
 
     public List<Pilot> findAllActive() {
         return dsl.selectFrom(PILOT)
-                .where(PILOT.DELETED_AT.isNull())
                 .fetch()
                 .map(PilotRepository::toPilot);
     }
@@ -61,8 +57,8 @@ public class PilotRepository {
     // findLastLoginAtByPilotIds) rather than the two-step batch-lookup GET /admin/pilots used to
     // do, since signedUpAt/lastLoginAt aren't real pilot columns but the pagination/sort here needs
     // to work uniformly across all five sortable columns in one query. Also LEFT JOINed to account
-    // for email/disabled - a pilot with no account (an unclaimed record) shows up with both null
-    // rather than being hidden from the list.
+    // for email/disabled - a pilot with no account (an unclaimed record, or one whose account was
+    // deleted) shows up with both null rather than being hidden from the list.
     public List<PilotListRow> findAllActivePage(String sort, String order, int offset, int limit) {
         return dsl.select(PILOT.ID, PILOT.NAME, PILOT.CREATED_BY, ACCOUNT.EMAIL, ACCOUNT.DISABLED_AT,
                         AUTH_IDENTITY.CREATED_AT, AUTH_IDENTITY.LAST_LOGIN_AT)
@@ -71,7 +67,6 @@ public class PilotRepository {
                 .on(ACCOUNT.PILOT_ID.eq(PILOT.ID))
                 .leftJoin(AUTH_IDENTITY)
                 .on(AUTH_IDENTITY.PILOT_ID.eq(PILOT.ID).and(AUTH_IDENTITY.TYPE.eq(AuthIdentityType.PASSWORD.name())))
-                .where(PILOT.DELETED_AT.isNull())
                 .orderBy(sortField(sort, order))
                 .limit(limit)
                 .offset(offset)
@@ -80,7 +75,7 @@ public class PilotRepository {
     }
 
     public int countActive() {
-        return dsl.fetchCount(dsl.selectFrom(PILOT).where(PILOT.DELETED_AT.isNull()));
+        return dsl.fetchCount(PILOT);
     }
 
     // Explicit nullsLast()/nullsFirst() rather than relying on each database's own default NULL
@@ -99,13 +94,6 @@ public class PilotRepository {
             case "lastLoginAt" -> desc ? AUTH_IDENTITY.LAST_LOGIN_AT.desc().nullsLast() : AUTH_IDENTITY.LAST_LOGIN_AT.asc().nullsLast();
             default -> desc ? PILOT.NAME.desc() : PILOT.NAME.asc();
         };
-    }
-
-    public void delete(PilotId id) {
-        dsl.update(PILOT)
-                .set(PILOT.DELETED_AT, OffsetDateTime.now())
-                .where(PILOT.ID.eq(id.value()))
-                .execute();
     }
 
     private static Pilot toPilot(PilotRecord r) {

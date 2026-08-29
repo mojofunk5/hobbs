@@ -886,6 +886,38 @@ class HobbsApplicationIntegrationTest {
         assertThat(invite.getCode(), is(notNullValue()));
     }
 
+    @Test
+    void deletingAnAccountPreservesTheFlightHistoryUnderTheSamePilotIdAsAnUnclaimedRecord() {
+        SessionDto session = register("Del2", "del-flighthistory@example.com", "Password123");
+        HobbsClient authedClient = createAuthenticatedClient(session.getSessionId());
+        UUID aircraftId = authedClient.createAircraft(new CreateAircraftDto("G-KEEP", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        FlightEntryDto flight = authedClient.createFlightEntry(aFlightEntry(aircraftId, null));
+
+        authedClient.deletePilot(session.getPilotId());
+
+        // The pre-existing session isn't invalidated by account deletion (SessionAuthFilter only
+        // checks session validity, not account status, on each request - same documented gap as
+        // disable), so it's still usable here purely to prove the flight entry itself survived.
+        FlightEntryDto stillThere = authedClient.getFlightEntry(flight.getId());
+        assertThat(stillThere.getId(), is(flight.getId()));
+        PilotDto listed = adminClient.adminListPilots(0, 100, "name", "asc").getPilots().stream()
+                .filter(p -> p.getId().equals(session.getPilotId()))
+                .findFirst().orElseThrow();
+        assertThat(listed.getEmail(), is((String) null));
+        assertThat(listed.isDisabled(), is((Boolean) null));
+    }
+
+    @Test
+    void anAdminCanReInviteAPilotWhoseAccountWasDeleted() {
+        SessionDto session = register("Revivable", "revivable@example.com", "Password123");
+        adminClient.adminDeletePilot(session.getPilotId());
+
+        String freshCode = adminClient.invitePilot(new InvitePilotDto("revivable-new@example.com", null)).getCode();
+        SessionDto reRegistered = createClient().register(new RegisterDto("Revivable", "revivable-new@example.com", "Password123", freshCode));
+
+        assertThat(reRegistered.getPilotId(), is(not(session.getPilotId())));
+    }
+
     private String extractResetCode(String email) {
         RecordingEmailSender.SentEmail lastSent = emailSender.getSent().stream()
                 .filter(sent -> sent.toAddress().equals(email))

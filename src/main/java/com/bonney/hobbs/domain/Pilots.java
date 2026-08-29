@@ -40,8 +40,4 @@ public class Pilots {
         NameValidator.validate(name);
         repository.updateName(id, name);
     }
-
-    public void delete(PilotId id) {
-        repository.delete(id);
-    }
 }

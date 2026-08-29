@@ -17,6 +17,12 @@ public class AuthIdentityRepository {
         this.dsl = dsl;
     }
 
+    public void deleteByPilotId(PilotId pilotId) {
+        dsl.deleteFrom(AUTH_IDENTITY)
+                .where(AUTH_IDENTITY.PILOT_ID.eq(pilotId.value()))
+                .execute();
+    }
+
     public void save(AuthIdentity identity) {
         dsl.insertInto(AUTH_IDENTITY)
                 .set(AUTH_IDENTITY.ID, identity.getId().value())

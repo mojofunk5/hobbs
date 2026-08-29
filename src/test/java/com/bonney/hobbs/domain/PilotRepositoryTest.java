@@ -140,12 +140,11 @@ class PilotRepositoryTest {
     }
 
     @Test
-    void countActiveMatchesTotalNonDeletedPilots() {
-        Pilot alice = savePilot("Alice", "alice4@example.com", false, OffsetDateTime.now(), OffsetDateTime.now());
+    void countActiveMatchesTotalPilots() {
+        savePilot("Alice", "alice4@example.com", false, OffsetDateTime.now(), OffsetDateTime.now());
         savePilot("Bob", "bob4@example.com", false, OffsetDateTime.now(), OffsetDateTime.now());
-        repository.delete(alice.getId());
 
-        assertThat(repository.countActive(), is(1));
+        assertThat(repository.countActive(), is(2));
     }
 
     @Test

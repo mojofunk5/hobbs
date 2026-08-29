@@ -65,6 +65,14 @@ class AccountsTest {
     }
 
     @Test
+    void deleteRemovesTheAccountAndEveryAuthIdentityForThatPilot() {
+        accounts.delete(pilotId);
+
+        verify(repository).delete(pilotId);
+        verify(authIdentityRepository).deleteByPilotId(pilotId);
+    }
+
+    @Test
     void disableDelegatesToRepository() {
         accounts.disable(pilotId);
 

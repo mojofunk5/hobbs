@@ -43,6 +43,12 @@ public class AccountRepository {
         }
     }
 
+    public void delete(PilotId pilotId) {
+        dsl.deleteFrom(Tables.ACCOUNT)
+                .where(Tables.ACCOUNT.PILOT_ID.eq(pilotId.value()))
+                .execute();
+    }
+
     public void disable(PilotId pilotId) {
         dsl.update(Tables.ACCOUNT)
                 .set(Tables.ACCOUNT.DISABLED_AT, OffsetDateTime.now())
