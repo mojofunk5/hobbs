@@ -131,6 +131,13 @@ real time would intermittently fail whenever a second ticks over mid-test.
 - **Merging two `Pilot` records.** If someone registers their own account (a fresh `PilotId`) instead
   of using an invite that would've attached them to an unclaimed record someone else created, there's
   no way to reconcile the two afterwards. Deliberately out of scope for the pilot/account split.
+- **Pilot/aircraft search or pickers.** The logbook-entries plan
+  ([`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)) has `PilotId`/`AircraftId`
+  entered as a pasted-in id when adding an entry - workable for one real user's worth of test data,
+  but a real search-by-name UI needs a non-admin search endpoint first (today only
+  `GET /admin/pilots` exists, and there's no equivalent for aircraft at all).
+- **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
+  there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui), not here - see that repo's
   `docs/architecture-brief.md` for the roadmap.
