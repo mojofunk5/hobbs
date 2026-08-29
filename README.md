@@ -114,5 +114,6 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) - see that repo's `docs/architecture-brief.md`
   for the roadmap
 
-See `docs/DECISIONS.md` for a dated record of significant architecture/engineering decisions made
-along the way.
+See [`docs/GLOSSARY.md`](docs/GLOSSARY.md) for aviation and domain terms (PIC, dual, unclaimed pilot,
+etc.), and `docs/DECISIONS.md` for a dated record of significant architecture/engineering decisions
+made along the way.

@@ -96,7 +96,8 @@ etc. all extend `TypedId`) rather than passing raw `UUID`s at domain boundaries.
 
 ## Domain model
 
-See README.md for the full field list. The short version: `FlightEntry` is one CAP804/FCL.050
+See [`docs/GLOSSARY.md`](docs/GLOSSARY.md) for aviation and domain terms (PIC, dual, unclaimed
+pilot, etc.) and README.md for the full field list. The short version: `FlightEntry` is one CAP804/FCL.050
 logbook row (all durations in whole minutes, not float hours); `FlightTrack` is an optional raw GPS
 recording that can pre-fill a draft `FlightEntry` but is never required - `flightTrackId` is
 nullable, and a manually-entered flight is exactly as valid as a GPS-derived one.
