@@ -142,7 +142,7 @@ class SessionAuthFilterTest {
 
     @Test
     void validSessionPassesThrough() {
-        Pilot pilot = new Pilot(PilotId.random(), "Alice", "alice@example.com");
+        Pilot pilot = new Pilot(PilotId.random(), "Alice", null);
         SessionId sessionId = SessionId.random();
         when(sessions.find(sessionId)).thenReturn(Optional.of(pilot.getId()));
         when(context.path()).thenReturn("/game");
@@ -157,7 +157,7 @@ class SessionAuthFilterTest {
 
     @Test
     void nonAdminIsRejectedFromAdminPaths() {
-        Pilot pilot = new Pilot(PilotId.random(), "Alice", "alice@example.com");
+        Pilot pilot = new Pilot(PilotId.random(), "Alice", null);
         SessionId sessionId = SessionId.random();
         when(sessions.find(sessionId)).thenReturn(Optional.of(pilot.getId()));
         when(context.path()).thenReturn("/admin/referral-code");
@@ -174,7 +174,7 @@ class SessionAuthFilterTest {
 
     @Test
     void adminPassesThroughAdminPaths() {
-        Pilot pilot = new Pilot(PilotId.random(), "Alice", "alice@example.com");
+        Pilot pilot = new Pilot(PilotId.random(), "Alice", null);
         SessionId sessionId = SessionId.random();
         when(sessions.find(sessionId)).thenReturn(Optional.of(pilot.getId()));
         when(context.path()).thenReturn("/admin/referral-code");

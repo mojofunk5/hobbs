@@ -1,9 +1,11 @@
 package com.bonney.hobbs.client;
 
 import com.bonney.hobbs.dto.AircraftDto;
+import com.bonney.hobbs.dto.ClaimInviteRequestDto;
 import com.bonney.hobbs.dto.CreateAircraftDto;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreatePilotDto;
+import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import com.bonney.hobbs.dto.FlightEntryDto;
 import com.bonney.hobbs.dto.HealthDto;
 import com.bonney.hobbs.dto.InvitePilotDto;
@@ -12,6 +14,7 @@ import com.bonney.hobbs.dto.PasswordResetConfirmDto;
 import com.bonney.hobbs.dto.PasswordResetRequestDto;
 import com.bonney.hobbs.dto.PendingInviteDto;
 import com.bonney.hobbs.dto.PilotPageDto;
+import com.bonney.hobbs.dto.PilotSummaryDto;
 import com.bonney.hobbs.dto.ReferralCodeDto;
 import com.bonney.hobbs.dto.RegisterDto;
 import com.bonney.hobbs.dto.SessionDto;
@@ -103,11 +106,17 @@ public interface HobbsClient {
     @RequestLine("POST /admin/pilot/{pilotId}/password-reset")
     void adminSendPasswordReset(@Param("pilotId") UUID pilotId);
 
+    @RequestLine("POST /pilot")
+    PilotSummaryDto createPilot(CreateUnclaimedPilotDto request);
+
     @RequestLine("PUT /pilot/{pilotId}")
     void updatePilot(@Param("pilotId") UUID pilotId, CreatePilotDto pilot);
 
     @RequestLine("DELETE /pilot/{pilotId}")
     void deletePilot(@Param("pilotId") UUID pilotId);
+
+    @RequestLine("POST /pilot/{pilotId}/invite")
+    ReferralCodeDto inviteToClaimPilot(@Param("pilotId") UUID pilotId, ClaimInviteRequestDto request);
 
     @RequestLine("POST /aircraft")
     AircraftDto createAircraft(CreateAircraftDto request);

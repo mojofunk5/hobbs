@@ -9,6 +9,23 @@ work is this repo's README "Not yet built" section and CLAUDE.md "Open work").
 
 Reverse-chronological - newest first.
 
+## 2026-08-29: Pilot/account split implemented
+
+`Pilot` ("a person recordable on a flight") and `Account` (login/email/enabled-state) were one table.
+That meant a co-pilot who hadn't signed up couldn't be recorded by name - there was no way to create a
+`Pilot` without also giving it credentials. Split into two tables (`pilot` stays minimal: `id`, `name`,
+`created_by`; new `account` table holds `email`/`disabled_at`, one-to-one via `pilot_id`) so an
+"unclaimed" `Pilot` can exist with no account, and the pilot who logged it can later invite the real
+person to claim it via a referral code scoped to that specific `PilotId`
+(`referral_code.claims_pilot_id`). Full design, ground truth, and rationale in
+[`docs/plans/pilot-account-split.md`](plans/pilot-account-split.md) - including why `email`/`disabled`
+were dropped from `Pilot` entirely rather than just relaxed, and the pre-existing
+`pilot.email`/`auth_identity.identifier` desync bug fixed as a byproduct. Migration is expand-only
+(`pilot.email`/`disabled_at` still exist, just unused by new code); dropping them is a deliberate
+later, separate migration. Merging two `Pilot` records (e.g. someone who registered independently
+instead of via an invite) and referencing a co-pilot's `PilotId` from `FlightEntry` are both explicitly
+out of scope, left for later plans.
+
 ## 2026-08-29: Branch protection + auto-delete-on-merge added retroactively
 
 Both `hobbs` and `hobbs-ui` are public GitHub repos, so real branch protection (require a PR, require

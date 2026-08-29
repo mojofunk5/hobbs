@@ -1,5 +1,7 @@
 package com.bonney.hobbs;
 
+import com.bonney.hobbs.domain.AccountRepository;
+import com.bonney.hobbs.domain.Accounts;
 import com.bonney.hobbs.domain.AdminBootstrap;
 import com.bonney.hobbs.domain.AdminRepository;
 import com.bonney.hobbs.domain.AircraftRepository;
@@ -87,19 +89,20 @@ public class HobbsApplication {
         DSLContext dsl = DSL.using(dataSource, JDBCUtils.dialect(config.dbUrl()), settings);
 
         Pilots pilots = new Pilots(new PilotRepository(dsl));
+        AuthIdentityRepository authIdentityRepository = new AuthIdentityRepository(dsl);
+        Accounts accounts = new Accounts(new AccountRepository(dsl), authIdentityRepository);
         SessionRepository sessionRepository = new SessionRepository(dsl);
         Sessions sessions = new Sessions(sessionRepository, config.sessionTtlHours());
         AdminRepository adminRepository = new AdminRepository(dsl);
         ReferralCodeRepository referralCodeRepository = new ReferralCodeRepository(dsl);
-        AuthIdentityRepository authIdentityRepository = new AuthIdentityRepository(dsl);
         PasswordResetCodeRepository passwordResetCodeRepository = new PasswordResetCodeRepository(dsl);
         PasswordHasher passwordHasher = new PasswordHasher();
         this.adminBootstrap = new AdminBootstrap(adminRepository);
         FailedAttemptRepository failedAttemptRepository = new FailedAttemptRepository(dsl);
-        Auth auth = new Auth(pilots, authIdentityRepository, sessions, passwordHasher,
+        Auth auth = new Auth(pilots, accounts, authIdentityRepository, sessions, passwordHasher,
                 adminBootstrap, adminRepository, referralCodeRepository, failedAttemptRepository,
                 config.loginThrottleMaxAttempts(), Duration.ofMinutes(config.loginThrottleWindowMinutes()));
-        PasswordReset passwordReset = new PasswordReset(pilots, authIdentityRepository, passwordHasher,
+        PasswordReset passwordReset = new PasswordReset(pilots, accounts, authIdentityRepository, passwordHasher,
                 passwordResetCodeRepository, sessions, emailSender, config.frontendBaseUrl(), config.passwordResetCodeTtlMinutes(),
                 failedAttemptRepository, config.passwordResetThrottleMaxAttempts(),
                 Duration.ofMinutes(config.passwordResetThrottleWindowMinutes()));
@@ -109,9 +112,10 @@ public class HobbsApplication {
         HealthEndpoint healthEndpoint = new HealthEndpoint();
         FlightEntryEndpoint flightEntryEndpoint = new FlightEntryEndpoint(logbook);
         AircraftEndpoint aircraftEndpoint = new AircraftEndpoint(logbook);
-        PilotEndpoint pilotEndpoint = new PilotEndpoint(pilots);
+        PilotEndpoint pilotEndpoint = new PilotEndpoint(pilots, accounts, adminRepository, referralCodeRepository,
+                emailSender, config.frontendBaseUrl(), config.referralCodeTtlHours());
         AuthEndpoint authEndpoint = new AuthEndpoint(auth, adminRepository, passwordReset);
-        AdminEndpoint adminEndpoint = new AdminEndpoint(pilots, adminRepository, referralCodeRepository,
+        AdminEndpoint adminEndpoint = new AdminEndpoint(pilots, accounts, adminRepository, referralCodeRepository,
                 emailSender, config.frontendBaseUrl(), config.referralCodeTtlHours(), sessions, passwordReset);
 
         RateLimitRepository rateLimitRepository = new RateLimitRepository(dsl);

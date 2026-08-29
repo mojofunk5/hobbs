@@ -12,6 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.bonney.hobbs.jooq.Tables.ACCOUNT;
 import static com.bonney.hobbs.jooq.Tables.AUTH_IDENTITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -34,15 +35,17 @@ class PilotRepositoryTest {
         repository = new PilotRepository(dsl);
     }
 
-    // Inserts auth_identity directly via jOOQ (bypassing AuthIdentityRepository.save, which always
-    // stamps created_at as "now") so signedUpAt/lastLoginAt can be backdated deterministically for
-    // sort-order assertions, rather than relying on real sleeps between saves.
+    // Inserts account/auth_identity directly via jOOQ (bypassing Accounts/AuthIdentityRepository,
+    // which always stamp created_at as "now") so signedUpAt/lastLoginAt can be backdated
+    // deterministically for sort-order assertions, rather than relying on real sleeps between saves.
     private Pilot savePilot(String name, String email, boolean disabled, OffsetDateTime signedUpAt, OffsetDateTime lastLoginAt) {
-        Pilot pilot = new Pilot(PilotId.random(), name, email);
+        Pilot pilot = new Pilot(PilotId.random(), name, null);
         repository.save(pilot);
-        if (disabled) {
-            repository.disable(pilot.getId());
-        }
+        dsl.insertInto(ACCOUNT)
+                .set(ACCOUNT.PILOT_ID, pilot.getId().value())
+                .set(ACCOUNT.EMAIL, email)
+                .set(ACCOUNT.DISABLED_AT, disabled ? OffsetDateTime.now() : null)
+                .execute();
         dsl.insertInto(AUTH_IDENTITY)
                 .set(AUTH_IDENTITY.ID, UUID.randomUUID())
                 .set(AUTH_IDENTITY.PILOT_ID, pilot.getId().value())
@@ -84,7 +87,7 @@ class PilotRepositoryTest {
 
         List<PilotListRow> rows = repository.findAllActivePage("email", "asc", 0, 10);
 
-        assertThat(rows.stream().map(r -> r.pilot().getEmail()).toList(), contains("aaa@example.com", "zzz@example.com"));
+        assertThat(rows.stream().map(PilotListRow::email).toList(), contains("aaa@example.com", "zzz@example.com"));
     }
 
     @Test
@@ -143,5 +146,40 @@ class PilotRepositoryTest {
         repository.delete(alice.getId());
 
         assertThat(repository.countActive(), is(1));
+    }
+
+    @Test
+    void anUnclaimedPilotWithNoAccountAppearsInTheListWithNullEmailAndDisabled() {
+        Pilot creator = new Pilot(PilotId.random(), "William", null);
+        repository.save(creator);
+        Pilot unclaimed = new Pilot(PilotId.random(), "Louis", creator.getId());
+        repository.save(unclaimed);
+
+        List<PilotListRow> rows = repository.findAllActivePage("name", "asc", 0, 10);
+
+        PilotListRow row = rows.stream().filter(r -> r.pilot().getId().equals(unclaimed.getId())).findFirst().orElseThrow();
+        assertThat(row.email(), is(nullValue()));
+        assertThat(row.disabled(), is(nullValue()));
+    }
+
+    @Test
+    void updateNameChangesTheStoredName() {
+        Pilot pilot = new Pilot(PilotId.random(), "Old Name", null);
+        repository.save(pilot);
+
+        repository.updateName(pilot.getId(), "New Name");
+
+        assertThat(repository.findById(pilot.getId()).orElseThrow().getName(), is("New Name"));
+    }
+
+    @Test
+    void savePersistsCreatedBy() {
+        Pilot creator = new Pilot(PilotId.random(), "William", null);
+        repository.save(creator);
+        Pilot unclaimed = new Pilot(PilotId.random(), "Louis", creator.getId());
+
+        repository.save(unclaimed);
+
+        assertThat(repository.findById(unclaimed.getId()).orElseThrow().getCreatedBy(), is(creator.getId()));
     }
 }

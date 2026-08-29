@@ -38,7 +38,7 @@ class FlightEntryRepositoryTest {
         repository = new FlightEntryRepository(dsl);
 
         // FlightEntry has FK constraints on pilot and aircraft - both need a real row to reference.
-        Pilot pilot = new Pilot(PilotId.random(), "William", "william@example.com");
+        Pilot pilot = new Pilot(PilotId.random(), "William", null);
         new PilotRepository(dsl).save(pilot);
         pilotId = pilot.getId();
 
@@ -105,7 +105,7 @@ class FlightEntryRepositoryTest {
 
     @Test
     void findAllByPilotIdOnlyReturnsThatPilotsEntries() {
-        Pilot otherPilot = new Pilot(PilotId.random(), "Someone Else", "someone@example.com");
+        Pilot otherPilot = new Pilot(PilotId.random(), "Someone Else", null);
         new PilotRepository(dsl).save(otherPilot);
         repository.save(anEntry(LocalDate.now(), "2026-08-24T10:00:00Z", "2026-08-24T10:30:00Z"));
         FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,

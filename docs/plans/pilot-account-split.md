@@ -1,8 +1,8 @@
 # Plan: Pilot/Account split
 
-**Status:** Designed and approved 2026-08-29, not yet implemented. A fresh session should pick this
-file up to actually build it - it's written to be self-contained (ground truth included, not just
-conclusions) so that session doesn't need to rediscover the current model from scratch.
+**Status:** Designed and approved 2026-08-29; implemented 2026-08-29 on `feature/pilot-account-split`.
+Everything in Design/Migration/New endpoints below is built and tested. The "Explicitly out of scope"
+items at the bottom remain exactly that - not part of this change.
 
 ## Context
 

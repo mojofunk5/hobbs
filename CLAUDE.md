@@ -116,10 +116,14 @@ real time would intermittently fail whenever a second ticks over mid-test.
   from full-stops), night time (needs sunset/sunrise tables per airfield/date), and cross-country
   distance. Currently the two are just linkable via `flightTrackId`; nothing populates one from the
   other yet.
-- **Pilot vs. account.** `Pilot` currently conflates "a person recordable on a flight" (PIC, co-pilot,
-  instructor) with "an account holder" - there's no way to record a co-pilot who hasn't signed up.
-  Fully designed in [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md), not yet
-  implemented.
+- **`FlightEntry`/`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId`.** `Pilot` and
+  `Account` are now split (see [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md),
+  implemented) so an unclaimed `Pilot` record can exist for someone recordable on a flight who hasn't
+  signed up - but nothing in the flight domain references a co-pilot's `PilotId` yet; `pic_name`
+  stays free text. A separate, later plan's decision entirely.
+- **Merging two `Pilot` records.** If someone registers their own account (a fresh `PilotId`) instead
+  of using an invite that would've attached them to an unclaimed record someone else created, there's
+  no way to reconcile the two afterwards. Deliberately out of scope for the pilot/account split.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui), not here - see that repo's
   `docs/architecture-brief.md` for the roadmap.

@@ -11,10 +11,11 @@ public class Pilots {
         this.repository = repository;
     }
 
-    public Pilot create(String name, String email) {
+    // One creation path whether the pilot ends up with an account or not - createdBy is null for
+    // self-registration, or the inviting pilot's ID for an unclaimed record.
+    public Pilot create(String name, PilotId createdBy) {
         NameValidator.validate(name);
-        EmailValidator.validate(email);
-        Pilot pilot = new Pilot(PilotId.random(), name, email);
+        Pilot pilot = new Pilot(PilotId.random(), name, createdBy);
         repository.save(pilot);
         return pilot;
     }
@@ -35,29 +36,12 @@ public class Pilots {
         return repository.countActive();
     }
 
-    public void update(PilotId id, String name, String email) {
+    public void updateName(PilotId id, String name) {
         NameValidator.validate(name);
-        EmailValidator.validate(email);
-        repository.save(new Pilot(id, name, email));
-    }
-
-    public Optional<Pilot> findByEmail(String email) {
-        return repository.findByEmail(email);
+        repository.updateName(id, name);
     }
 
     public void delete(PilotId id) {
         repository.delete(id);
-    }
-
-    public void disable(PilotId id) {
-        repository.disable(id);
-    }
-
-    public void enable(PilotId id) {
-        repository.enable(id);
-    }
-
-    public boolean isDisabled(PilotId id) {
-        return repository.isDisabled(id);
     }
 }

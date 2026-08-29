@@ -28,6 +28,14 @@ public class AuthIdentityRepository {
                 .execute();
     }
 
+    public void updateIdentifier(PilotId pilotId, AuthIdentityType type, String identifier) {
+        dsl.update(AUTH_IDENTITY)
+                .set(AUTH_IDENTITY.IDENTIFIER, identifier)
+                .where(AUTH_IDENTITY.PILOT_ID.eq(pilotId.value()))
+                .and(AUTH_IDENTITY.TYPE.eq(type.name()))
+                .execute();
+    }
+
     public void updateHashedCredential(PilotId pilotId, AuthIdentityType type, String hashedCredential) {
         dsl.update(AUTH_IDENTITY)
                 .set(AUTH_IDENTITY.HASHED_CREDENTIAL, hashedCredential)
