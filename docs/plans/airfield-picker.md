@@ -75,21 +75,25 @@ Checked what's actually available before designing against it:
   - Dropped from the source data as not logbook-relevant: `continent`, `scheduled_service`,
     `iata_code`, `gps_code` (redundant with `icaoCode` for essentially all GB rows), `home_link`,
     `wikipedia_link`, `keywords`.
-- **Picker is a single-default dropdown for now, not a search box.** Unlike the pilot and aircraft
-  pickers, William only flies out of one airfield today, so the MVP picker default-selects
-  Sherburn-in-Elmet (`EGCJ`) with the rest of the imported GB set behind it for whenever a second
-  airfield is actually needed. No decision yet on whether that becomes a search-as-you-type box (like
-  aircraft) or a short dropdown list (like a small, known set) once there's more than one real option
-  in use - left for that point, not designed speculatively now.
+- **Picker searches by name or ICAO code, pre-filled with the pilot's usual airfield.** Confirmed
+  2026-08-30 (revised from an earlier "single default dropdown" draft): even with William flying out
+  of one airfield today, a lookup a pilot can actually type - "Sherburn" or "EGCJ" - is the real
+  requirement, not just a default selection. `GET /airfield?search=` does a case-insensitive
+  substring match against `name` and an exact/prefix match against `icaoCode` (matches OurAirports'
+  own `ident`/`gps_code`/`local_code` convention of using the ICAO code as the primary identifier),
+  combined in one query rather than two separate fields in the UI. Given ~1,200 active GB rows -
+  small enough that an empty `search` can reasonably return the full set (same shape as the pilot
+  picker's empty-search behaviour, unlike aircraft's "must type 2+ characters" restriction driven by
+  its ~600k-row scale). The `hobbs-ui` picker still pre-fills/pre-selects Sherburn-in-Elmet (`EGCJ`)
+  as the likely answer, but typing to search and pick a different one works from day one rather than
+  being deferred.
 
 ## Open questions (for review on this doc, before implementation)
 
-- **`GET /airfield` endpoint shape.** ~1,200 active GB rows is far smaller than aircraft's ~600k, so
-  an unfiltered "return everything" response (like the pilot picker's empty-search behaviour) is
-  plausible rather than aircraft's "search required, minimum 2 characters" shape - but worth
-  confirming against actual picker UX once it's built, rather than assuming now.
-- **Index needed on `airfield.icao_code`/`name`** if/when this does become a search endpoint - same
-  reminder as the aircraft-picker plan's migration chunk, not urgent while the table is this small.
+- **Index needed on `airfield.icao_code`/`name`** to back the search endpoint - same reminder as the
+  aircraft-picker plan's migration chunk, worth adding in the same migration that creates the table
+  rather than as an afterthought, even though ~1,200 rows won't show a missing-index problem in
+  practice for a while.
 - **`FlightEntry.departurePlace`/`arrivalPlace` migration path.** Changing these from `String` to an
   `AirfieldId` reference is a breaking schema change for any existing rows with free-text place
   names (there's real test/seed data with plain strings today per `CLAUDE.md`'s migration-safety
@@ -106,11 +110,13 @@ Per `CLAUDE.md`'s "keep PRs small" rule:
 2. **Import job** - CSV parsing filtered to `iso_country = GB`, non-closed, airport-type rows,
    upsert-by-`(sourceName, sourceId)` logic, new CLI subcommand, tests against a fixture CSV (not a
    live network call in tests).
-3. **`GET /airfield` endpoint** + OpenAPI doc, shape per the open question above.
+3. **`GET /airfield?search=` endpoint** + OpenAPI doc - name substring / ICAO code match, empty
+   search returns the full ~1,200-row GB set, per Confirmed decisions above.
 4. **`FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId` migration** - expand/backfill/
    contract sequence per the open question above. Likely its own sub-plan given the data-safety
    constraint, not a single PR.
-5. **`hobbs-ui`** - picker widget (default-selected Sherburn-in-Elmet, single airfield for now).
+5. **`hobbs-ui`** - picker widget (search-as-you-type by name/code, pre-filled with
+   Sherburn-in-Elmet).
 
 ## Explicitly out of scope (left for later)
 
@@ -118,8 +124,6 @@ Per `CLAUDE.md`'s "keep PRs small" rule:
   once William (or a future pilot) actually flies somewhere not in the GB seed set.
 - **Non-GB airfields.** Import is GB-only for now; widen to global (or a specific additional country)
   once there's a real need, same reasoning as the GB-only scoping decision above.
-- **Search-as-you-type picker UX.** Deferred until there's more than one real airfield in regular
-  use - see Confirmed decisions above.
 - **Sunset/sunrise-table night-time derivation that would consume `Airfield` coordinates.** Tracked
   separately under FlightTrack -> FlightEntry derivation in `CLAUDE.md`'s Open work; this plan only
   makes the coordinates available, doesn't build the consumer.

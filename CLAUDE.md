@@ -179,9 +179,9 @@ real time would intermittently fail whenever a second ticks over mid-test.
     `FlightEntry.departurePlace`/`arrivalPlace` are still plain `String`s today - see
     [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java) - migrating them to
     an `AirfieldId` reference is its own expand/backfill/contract sequence, flagged in the plan doc's
-    open questions rather than decided there. The picker itself starts as a single default-selected
-    airfield (Sherburn-in-Elmet) rather than search, since William only flies out of one airfield
-    today; no free-text "add an airfield" fallback for now.
+    open questions rather than decided there. The picker searches by name or ICAO code
+    (`GET /airfield?search=`), pre-filled with Sherburn-in-Elmet as the likely answer; no free-text
+    "add an airfield" fallback for now.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
