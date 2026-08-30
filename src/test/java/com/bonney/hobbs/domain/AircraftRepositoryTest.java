@@ -70,6 +70,20 @@ class AircraftRepositoryTest {
     }
 
     @Test
+    void makeAndModelCanBothBeNull() {
+        // Real OpenSky rows exist with a registration but no manufacturer/model - see
+        // AircraftImportJobTest's N5926K case and V8__aircraft_make_model_nullable.sql.
+        Aircraft aircraft = new Aircraft(AircraftId.random(), "N5926K", null, null, EngineCategory.MULTI_ENGINE,
+                "ROCKWELL", "AC90", null, null, null, null, null, null);
+
+        repository.save(aircraft);
+
+        Aircraft found = repository.findById(aircraft.getId()).orElseThrow();
+        assertThat(found.getMake(), is((String) null));
+        assertThat(found.getModel(), is((String) null));
+    }
+
+    @Test
     void findByIdReturnsEmptyWhenNotFound() {
         assertThat(repository.findById(AircraftId.random()), is(Optional.empty()));
     }
