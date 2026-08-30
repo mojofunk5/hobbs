@@ -1,6 +1,6 @@
 # Plan: Picking a pilot you've flown with
 
-**Status:** Designed 2026-08-30, not yet implemented.
+**Status:** Designed 2026-08-30. Chunk 1 (backend) implemented. Chunk 2 (`hobbs-ui`) not yet started.
 
 ## Context
 

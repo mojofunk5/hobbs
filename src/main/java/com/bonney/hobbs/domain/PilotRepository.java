@@ -1,6 +1,7 @@
 package com.bonney.hobbs.domain;
 
 import com.bonney.hobbs.jooq.tables.records.PilotRecord;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SortField;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 import static com.bonney.hobbs.jooq.Tables.ACCOUNT;
 import static com.bonney.hobbs.jooq.Tables.AUTH_IDENTITY;
+import static com.bonney.hobbs.jooq.Tables.FLIGHT_ENTRY;
 import static com.bonney.hobbs.jooq.Tables.PILOT;
 
 public class PilotRepository {
@@ -76,6 +78,29 @@ public class PilotRepository {
 
     public int countActive() {
         return dsl.fetchCount(PILOT);
+    }
+
+    // No JOIN against flight_entry (which would need DISTINCT to dedupe rows) - each OR arm is a
+    // self-contained condition, so a pilot flown with on multiple entries still matches PILOT.ID
+    // exactly once.
+    public List<Pilot> findKnownTo(PilotId callerId, String search) {
+        UUID caller = callerId.value();
+        Condition knownTo = PILOT.ID.eq(caller)
+                .or(PILOT.CREATED_BY.eq(caller))
+                .or(PILOT.ID.in(dsl.select(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID)
+                        .from(FLIGHT_ENTRY)
+                        .where(FLIGHT_ENTRY.PILOT_ID.eq(caller))))
+                .or(PILOT.ID.in(dsl.select(FLIGHT_ENTRY.CO_PILOT_ID)
+                        .from(FLIGHT_ENTRY)
+                        .where(FLIGHT_ENTRY.PILOT_ID.eq(caller).and(FLIGHT_ENTRY.CO_PILOT_ID.isNotNull()))));
+        if (search != null && !search.isBlank()) {
+            knownTo = knownTo.and(PILOT.NAME.containsIgnoreCase(search));
+        }
+        return dsl.selectFrom(PILOT)
+                .where(knownTo)
+                .orderBy(PILOT.NAME.asc())
+                .fetch()
+                .map(PilotRepository::toPilot);
     }
 
     // Explicit nullsLast()/nullsFirst() rather than relying on each database's own default NULL

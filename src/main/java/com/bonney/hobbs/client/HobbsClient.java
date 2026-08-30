@@ -106,6 +106,12 @@ public interface HobbsClient {
     @RequestLine("POST /admin/pilot/{pilotId}/password-reset")
     void adminSendPasswordReset(@Param("pilotId") UUID pilotId);
 
+    @RequestLine("GET /pilot")
+    List<PilotSummaryDto> searchPilots();
+
+    @RequestLine("GET /pilot?search={search}")
+    List<PilotSummaryDto> searchPilots(@Param("search") String search);
+
     @RequestLine("POST /pilot")
     PilotSummaryDto createPilot(CreateUnclaimedPilotDto request);
 
