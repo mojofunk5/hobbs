@@ -1,13 +1,9 @@
 package com.bonney.hobbs.integration;
 
-import com.bonney.hobbs.AppConfig;
-import com.bonney.hobbs.HobbsApplication;
 import com.bonney.hobbs.client.HobbsClient;
 import com.bonney.hobbs.domain.EngineCategory;
-import com.bonney.hobbs.dto.AircraftDto;
 import com.bonney.hobbs.dto.ClaimInviteRequestDto;
 import com.bonney.hobbs.dto.CreateAircraftDto;
-import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreatePilotDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import com.bonney.hobbs.dto.FlightEntryDto;
@@ -24,22 +20,14 @@ import com.bonney.hobbs.dto.RegisterDto;
 import com.bonney.hobbs.dto.SessionDto;
 import com.bonney.hobbs.dto.UpdatePilotAdminDto;
 import feign.FeignException;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -56,59 +44,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Exercises the full stack (real Javalin server, in-memory H2 PostgreSQL-mode database) end to end
  * via HobbsClient. Covers the auth/pilot/admin subsystem (registration, login, referral codes,
- * password reset, admin pilot management) as well as the aircraft/flight-entry endpoints.
+ * password reset, admin pilot management) as well as the flight-entry endpoints. Health, version,
+ * OpenAPI, and aircraft coverage moved to HealthEndpointIntegrationTest/AircraftEndpointIntegrationTest
+ * - see docs/plans/split-integration-test-by-endpoint.md.
  */
-class HobbsApplicationIntegrationTest {
-
-    HobbsApplication application;
-    OkHttpClient httpClient;
-    HobbsClient adminClient;
-    RecordingEmailSender emailSender;
-
-    @BeforeEach
-    void before() {
-        Fixture fx = createFixture(Clock.systemUTC());
-        application = fx.application();
-        httpClient = fx.httpClient();
-        emailSender = fx.emailSender();
-        adminClient = fx.adminClient();
-    }
-
-    // Groups everything a fresh, isolated application instance needs (its own H2 database, its own
-    // ephemeral port, its own bootstrapped admin) behind one Clock parameter - used directly by
-    // before() with the real Clock.systemUTC(), and by the throttle-window tests below with a fixed
-    // Clock instead, so their repeated-failure loop can't flake by straddling a real window boundary
-    // (see FailedAttemptRepository's own injectable Clock for why - same reasoning as
-    // RateLimitRepositoryTest already applies at the unit level).
-    private record Fixture(HobbsApplication application, OkHttpClient httpClient, HobbsClient adminClient,
-                            RecordingEmailSender emailSender) {
-    }
-
-    private Fixture createFixture(Clock clock) {
-        String dbUrl = "jdbc:h2:mem:test-" + UUID.randomUUID() + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
-        AppConfig config = new AppConfig(dbUrl, "sa", "", 10_000, true, 24, null, false,
-                null, 587, null, null, null, "http://localhost:5173", 168, 30, 10, 15, 5, 15);
-        HobbsApplication.migrate(config);
-        RecordingEmailSender fixtureEmailSender = new RecordingEmailSender();
-        HobbsApplication fixtureApplication = new HobbsApplication(0, config, fixtureEmailSender, clock);
-        OkHttpClient fixtureHttpClient = new OkHttpClient.Builder().build();
-        String bootstrapCode = fixtureApplication.getAdminBootstrap().getBootstrapCode();
-        HobbsClient bootstrapClient = HobbsClient.create("http://localhost:" + fixtureApplication.getPort(), fixtureHttpClient);
-        SessionDto adminSession = bootstrapClient.register(new RegisterDto("admin", "admin@test.com", "Password123", bootstrapCode));
-        HobbsClient fixtureAdminClient = HobbsClient.withAuth(
-                "http://localhost:" + fixtureApplication.getPort(), fixtureHttpClient, adminSession.getSessionId());
-        return new Fixture(fixtureApplication, fixtureHttpClient, fixtureAdminClient, fixtureEmailSender);
-    }
-
-    @AfterEach
-    void after() {
-        application.stop();
-    }
-
-    @Test
-    void healthReturnsUp() {
-        assertThat(createClient().health().getStatus(), is("UP"));
-    }
+class HobbsApplicationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void aFreshlyRegisteredPilotCanLogIn() {
@@ -128,86 +68,6 @@ class HobbsApplicationIntegrationTest {
     @Test
     void unauthenticatedRequestsAreRejected() {
         assertThrows(FeignException.Unauthorized.class, () -> createClient().listAircraft());
-    }
-
-    @Test
-    void anAuthenticatedPilotCanRegisterAndListAircraft() {
-        HobbsClient pilot = createAuthenticatedClient();
-
-        AircraftDto created = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE"));
-
-        assertThat(created.getRegistration(), is("G-ABCD"));
-        assertThat(pilot.listAircraft().stream().map(AircraftDto::getId).toList(), contains(created.getId()));
-    }
-
-    @Test
-    void aircraftIsSharedAcrossPilotsNotScopedToOneAccount() {
-        HobbsClient first = createAuthenticatedClient();
-        HobbsClient second = createAuthenticatedClient();
-
-        AircraftDto created = first.createAircraft(new CreateAircraftDto("G-SHRD", "Piper", "PA-28", "SINGLE_ENGINE"));
-
-        assertThat(second.listAircraft().stream().map(AircraftDto::getId).toList(), contains(created.getId()));
-    }
-
-    @Test
-    void aPilotCanLogAFlightAndReadItBack() {
-        HobbsClient pilot = createAuthenticatedClient();
-        UUID aircraftId = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
-
-        FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
-
-        assertThat(created.getDeparturePlace(), is("EGCM"));
-        assertThat(created.getTotalMinutes(), is(45));
-        assertThat(created.getFlightTrackId(), is((UUID) null));
-
-        FlightEntryDto fetched = pilot.getFlightEntry(created.getId());
-        assertThat(fetched.getId(), is(created.getId()));
-    }
-
-    @Test
-    void listFlightEntriesOnlyReturnsTheAuthenticatedPilotsOwnEntries() {
-        HobbsClient first = createAuthenticatedClient();
-        HobbsClient second = createAuthenticatedClient();
-        UUID aircraftId = first.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
-        FlightEntryDto firstEntry = first.createFlightEntry(aFlightEntry(first, aircraftId, null));
-        second.createAircraft(new CreateAircraftDto("G-WXYZ", "Piper", "PA-28", "SINGLE_ENGINE"));
-
-        List<FlightEntryDto> firstList = first.listFlightEntries();
-        List<FlightEntryDto> secondList = second.listFlightEntries();
-
-        assertThat(firstList.stream().map(FlightEntryDto::getId).toList(), contains(firstEntry.getId()));
-        assertThat(secondList, is(List.of()));
-    }
-
-    @Test
-    void aPilotCannotFetchAnotherPilotsFlightEntry() {
-        HobbsClient first = createAuthenticatedClient();
-        HobbsClient second = createAuthenticatedClient();
-        UUID aircraftId = first.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
-        FlightEntryDto entry = first.createFlightEntry(aFlightEntry(first, aircraftId, null));
-
-        assertThrows(FeignException.Forbidden.class, () -> second.getFlightEntry(entry.getId()));
-    }
-
-    @Test
-    void fetchingAnUnknownFlightEntryReturnsNotFound() {
-        HobbsClient pilot = createAuthenticatedClient();
-
-        assertThrows(FeignException.NotFound.class, () -> pilot.getFlightEntry(UUID.randomUUID()));
-    }
-
-    @Test
-    void aFlightEntryWithoutAFlightTrackIsJustAsValidAsOneWithOne() {
-        // Manual entry is the primary path, GPS is an optional fast-path - see FlightEntry's Javadoc.
-        // This is really the same assertion as aPilotCanLogAFlightAndReadItBack's null-track check,
-        // named explicitly to keep that invariant visible as a deliberate contract, not incidental.
-        HobbsClient pilot = createAuthenticatedClient();
-        UUID aircraftId = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
-
-        FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
-
-        assertThat(created.getFlightTrackId(), is((UUID) null));
     }
 
     @Test
@@ -271,41 +131,10 @@ class HobbsApplicationIntegrationTest {
         assertThat(william.searchPilots("zzz"), is(List.of()));
     }
 
-    private CreateFlightEntryDto aFlightEntry(HobbsClient client, UUID aircraftId, UUID flightTrackId) {
-        UUID pilotInCommandId = client.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
-        LocalDate date = LocalDate.of(2026, 8, 24);
-        OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
-        OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
-        return new CreateFlightEntryDto(aircraftId, flightTrackId, date, "EGCM", departureTime, "EGCM",
-                arrivalTime, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
-    }
-
-    private SessionDto register(String name, String email, String password) {
-        String code = adminClient.invitePilot(new InvitePilotDto(email, name)).getCode();
-        return createClient().register(new RegisterDto(name, email, password, code));
-    }
-
     private SessionDto register(Fixture fx, String name, String email, String password) {
         String code = fx.adminClient().invitePilot(new InvitePilotDto(email, name)).getCode();
         HobbsClient client = HobbsClient.create("http://localhost:" + fx.application().getPort(), fx.httpClient());
         return client.register(new RegisterDto(name, email, password, code));
-    }
-
-    private HobbsClient createClient() {
-        int port = application.getPort();
-        return HobbsClient.create("http://localhost:" + port, httpClient);
-    }
-
-    private HobbsClient createAuthenticatedClient() {
-        String email = UUID.randomUUID() + "@test.com";
-        String referralCode = adminClient.invitePilot(new InvitePilotDto(email, "testuser")).getCode();
-        SessionDto session = createClient().register(new RegisterDto("testuser", email, "Password123", referralCode));
-        return createAuthenticatedClient(session.getSessionId());
-    }
-
-    private HobbsClient createAuthenticatedClient(UUID sessionId) {
-        int port = application.getPort();
-        return HobbsClient.withAuth("http://localhost:" + port, httpClient, sessionId);
     }
 
     @Test
@@ -574,22 +403,6 @@ class HobbsApplicationIntegrationTest {
 
         assertThat(invites, hasSize(1));
         assertThat(invites.get(0).isExpired(), is(false));
-    }
-
-    @Test
-    void openApiDocumentationDoesNotRequireAuthenticationWhenEnabled() throws Exception {
-        Request request = new Request.Builder()
-                .url("http://localhost:" + application.getPort() + "/openapi")
-                .build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            assertThat(response.code(), is(200));
-        }
-    }
-
-    @Test
-    void versionEndpointDoesNotRequireAuthentication() {
-        assertThat(createClient().version().getSha(), is(notNullValue()));
     }
 
     @Test
@@ -1023,22 +836,6 @@ class HobbsApplicationIntegrationTest {
         SessionDto reRegistered = createClient().register(new RegisterDto("Revivable", "revivable-new@example.com", "Password123", freshCode));
 
         assertThat(reRegistered.getPilotId(), is(not(session.getPilotId())));
-    }
-
-    private String extractResetCode(String email) {
-        return extractResetCode(emailSender, email);
-    }
-
-    private String extractResetCode(RecordingEmailSender fixtureEmailSender, String email) {
-        RecordingEmailSender.SentEmail lastSent = fixtureEmailSender.getSent().stream()
-                .filter(sent -> sent.toAddress().equals(email))
-                .reduce((first, second) -> second)
-                .orElseThrow();
-        Matcher matcher = Pattern.compile("code=(\\d{6})").matcher(lastSent.htmlBody());
-        if (!matcher.find()) {
-            throw new IllegalStateException("No password reset code found in email to " + email);
-        }
-        return matcher.group(1);
     }
 
     private HobbsClient createClient(Fixture fx) {
