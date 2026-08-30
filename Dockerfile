@@ -1,27 +1,15 @@
-FROM eclipse-temurin:25-jdk AS build
-WORKDIR /workspace
-# Copy only the dependency manifest first (build.gradle/settings.gradle/the wrapper), resolve
-# dependencies against just that, and only *then* copy the rest of the source - the standard
-# package-manager Docker caching pattern (same idea as COPY package.json before COPY . . in a Node
-# image). This layer - the expensive one, downloading the Gradle distribution itself plus every
-# dependency (including the jooqGenerator configuration, which `dependencies` resolves too since it
-# reports every configuration by default) - only invalidates when these manifest files actually
-# change, not on every commit, unlike the RUN below it.
-#
-# A previous version of this used `RUN --mount=type=cache,target=/root/.gradle` instead, which looked
-# equivalent but wasn't: a cache *mount* is BuildKit-local state tied to the runner's own disk, not
-# something build.yml's cache-to: type=gha exports (that only exports real image layers) - confirmed
-# by watching Gradle re-download its own distribution from scratch on a run that should have been a
-# cache hit. This version uses a genuine, exportable layer instead.
-COPY build.gradle settings.gradle gradlew ./
-COPY gradle ./gradle
-RUN ./gradlew --no-daemon dependencies > /dev/null
-COPY . .
-RUN ./gradlew shadowJar -x test --no-daemon
-
+# Single-stage now - the jar arrives pre-built (see build.yml's "build" job, which runs shadowJar
+# itself and uploads the result). This used to be a two-stage build (a JDK stage compiling the jar,
+# then this JRE stage copying it out) so the runtime image wouldn't ship a JDK it doesn't need - but
+# building inside Docker meant every deploy recompiled from scratch in a fresh, cache-less container,
+# unable to reuse the Gradle build cache the "build" job's own separate Gradle invocation already
+# populates. Measured at ~31s of a ~60s deploy, unaffected by the earlier dependency-layer-caching fix
+# (that fixed the download portion, which was never the actual bottleneck). Building the jar once, in
+# the job that already has a warm cache, and just packaging it here instead is the real fix - see
+# docs/CI_PERFORMANCE.md.
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-COPY --from=build /workspace/build/libs/hobbs-0.0.1-SNAPSHOT-all.jar app.jar
+COPY build/libs/hobbs-0.0.1-SNAPSHOT-all.jar app.jar
 # Baked in at build time so GET /version reflects the actual image running, regardless of how it's
 # deployed - not passed as a docker-compose runtime env var, which would depend on the deploy script
 # wiring it through correctly every time.
