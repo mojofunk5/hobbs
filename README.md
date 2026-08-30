@@ -47,8 +47,12 @@ Brings up Postgres and the app only, at `http://localhost:8080`. The frontend is
 ```
 
 248 tests, 94% instruction / 84% branch coverage: full coverage of the auth/session/referral-code/
-admin/password-reset subsystem (unit tests plus an end-to-end `HobbsApplicationIntegrationTest`
-covering register/login, admin/referral-code flows, and the 401/403/404 auth-boundary cases), plus
+admin/password-reset subsystem (unit tests plus end-to-end integration tests, one class per endpoint
+- `HealthEndpointIntegrationTest`, `AircraftEndpointIntegrationTest`, `FlightEntryEndpointIntegrationTest`,
+`PilotEndpointIntegrationTest`, `AuthEndpointIntegrationTest`, `AdminEndpointIntegrationTest` - sharing
+fixture setup via `AbstractIntegrationTest`; see
+[`docs/plans/split-integration-test-by-endpoint.md`](docs/plans/split-integration-test-by-endpoint.md)),
+covering register/login, admin/referral-code flows, and the 401/403/404 auth-boundary cases, plus
 tests for the flight domain - `LogbookTest` (mocked repositories), `AircraftRepositoryTest`,
 `FlightEntryRepositoryTest`, `FlightTrackRepositoryTest`, `SimulatorSessionRepositoryTest` (real H2
 via Flyway), value-object tests (`PilotTest`, `AircraftTest`, `FlightEntryTest`, `FlightTrackTest`,
