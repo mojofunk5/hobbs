@@ -129,3 +129,30 @@ implementation; resolved as follows rather than blocking on a second doc round-t
   production-scale data yet to confirm the substring scan is actually slow. Revisit if/when
   `GET /aircraft?search=` is observed to be slow against the real ~600k-row imported table - same
   "don't build ahead of a confirmed need" reasoning as the rest of this repo's practice.
+
+## 2026-08-30: Aircraft reference columns widened to TEXT after real-data crashes
+
+The fixture CSV used in `AircraftImportJobTest` had make/model on every row and short values for
+everything else, so V7's guessed `VARCHAR(n)` widths all looked reasonable in tests. The real
+OpenSky CSV (94.5MB, ~520k rows) broke that three times in a row against production: `built`
+crashing on a NULL `make`/`model` (V8), `manufacturer_icao VARCHAR(10)` too narrow for a real value
+(V9, which also widened the other OpenSky-sourced columns pre-emptively), then `make VARCHAR(100)`
+too narrow for one row that's a 120-character joined list of surnames - clearly a data-entry error
+from an OpenSky contributor, not a real manufacturer name (V10, which also had to drop
+`aircraft_make_idx` first - H2, used for jOOQ codegen and the test suite, refuses to index a
+CLOB/TEXT column at all).
+
+Downloaded the real CSV locally afterwards (see `docs/plans/aircraft-picker.md`'s data source URL)
+and ran it end-to-end against a local H2 database to sanity-check the rest, rather than continuing
+to whack-a-mole one crash per production attempt. Found two more real issues, fixed proactively:
+
+- `built` is a full ISO date (`"1978-01-01"`) rather than a bare year on ~49% of rows -
+  `AircraftImportJob.parseYear` only handled a plain integer, silently discarding the year on
+  almost half the dataset. Fixed to extract the leading 4 digits either way.
+- 504 rows share the placeholder registration `"SERV"` (clearly not a real, distinct tail number).
+  Left as-is: `upsertByRegistration`'s last-one-wins behavior means these collapse into a single
+  row, which is an acceptable cost given OpenSky's own "no support or guarantees" disclaimer on
+  this dataset - not a bug in this repo's code, and not worth special-casing a specific junk value.
+
+Full real-CSV import (520,000 rows, 3,473 skipped for no registration) now completes cleanly with
+V7-V10 all applied.

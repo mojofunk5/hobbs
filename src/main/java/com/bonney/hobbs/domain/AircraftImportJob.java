@@ -33,6 +33,11 @@ public class AircraftImportJob {
     // engines, piston. Only the middle digit (engine count) matters here.
     private static final Pattern ENGINE_COUNT = Pattern.compile("^.(\\d).$");
 
+    // built is sometimes a bare year ("1978") and sometimes a full ISO date ("1978-01-01") - a
+    // spot check of the real OpenSky CSV found roughly half the rows use the latter shape. Either
+    // way only the leading 4 digits matter here.
+    private static final Pattern LEADING_YEAR = Pattern.compile("^(\\d{4})");
+
     private final AircraftRepository aircraftRepository;
 
     public AircraftImportJob(AircraftRepository aircraftRepository) {
@@ -94,11 +99,11 @@ public class AircraftImportJob {
         if (value == null) {
             return null;
         }
-        try {
-            return Integer.valueOf(value);
-        } catch (NumberFormatException e) {
+        Matcher matcher = LEADING_YEAR.matcher(value);
+        if (!matcher.find()) {
             return null;
         }
+        return Integer.valueOf(matcher.group(1));
     }
 
     private static String trimToNull(CSVRecord record, String column) {
