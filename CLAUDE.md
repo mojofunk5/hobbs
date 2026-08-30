@@ -182,7 +182,9 @@ real time would intermittently fail whenever a second ticks over mid-test.
     open questions rather than decided there. The picker searches by name or ICAO code
     (`GET /airfield?search=`) with no pre-filled default - deliberately, since William is a guide for
     what to build first, not a special case the UI hardcodes; no free-text "add an airfield" fallback
-    for now.
+    for now. Once `FlightEntry` references `AirfieldId`, results also rank the calling pilot's own
+    recently-flown airfields first (most recent first, everything else alphabetical after) - a later
+    chunk of the same plan, not buildable until that migration lands.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in

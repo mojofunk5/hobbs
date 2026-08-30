@@ -87,6 +87,23 @@ Checked what's actually available before designing against it:
   `hobbs-ui` picker, including Sherburn-in-Elmet** - Andy's explicit call (2026-08-30): William is
   being used as a guide for what to build first, but Hobbs itself isn't a William-only logbook, and a
   hardcoded default would bake that assumption into the UI for every pilot who ever uses it.
+- **Results ranked by the calling pilot's own recent airfields, not alphabetical-only.** Confirmed
+  2026-08-30 - this is a different thing from the rejected "pre-fill Sherburn" default: it's derived
+  per-request from the calling pilot's own `FlightEntry` history (their last N distinct departure/
+  arrival airfields, most recent flight first), not a hardcoded value baked into the product - so it
+  doesn't reintroduce the problem the pre-fill removal above was fixing. `GET /airfield?search=`
+  orders results as: the calling pilot's own recent airfields first (most recently flown first, deduped),
+  then everything else alphabetically by `name`. Applies whether `search` is empty or not, so typing
+  "S" still surfaces a recently-flown Sherburn ahead of alphabetically-earlier matches. "Last N" -
+  suggest N=5, open to review - counts *distinct* airfields, not flights (a pilot who's flown the
+  same airfield ten times in a row shouldn't crowd out everywhere else they've been).
+  - **Depends on the `AirfieldId` migration (chunk 4 below), not buildable before it.** Ranking by
+    "recently flown" needs `FlightEntry` to reference `Airfield` by id - deriving it from today's
+    free-text `departurePlace`/`arrivalPlace` strings would mean fuzzy-matching against `airfield.name`
+    to figure out which row a pilot meant, which is exactly the kind of unreliable string-matching
+    [[feedback_ids_over_text]] argues against. This reorders the chunking below: the ranked search
+    behaviour is a new final chunk, sequenced after `FlightEntry` already references `AirfieldId`,
+    not part of the initial `GET /airfield?search=` endpoint.
 
 ## Open questions (for review on this doc, before implementation)
 
@@ -100,6 +117,10 @@ Checked what's actually available before designing against it:
   rule) - needs its own expand/backfill/contract sequence, not a single migration. Scoping that
   sequence is implementation work, not a decision this doc needs to make, but flagging it now so the
   chunking below accounts for it.
+- **"Last N" value for recent-airfields ranking.** Suggested N=5 distinct airfields above, not
+  confirmed - depends on how many airfields a typical pilot actually rotates through, which nobody
+  has real data on yet (William flies out of one today). Cheap to tune later since it's a query
+  parameter, not a schema decision, so not worth blocking the rest of this plan on.
 
 ## Chunking
 
@@ -111,11 +132,19 @@ Per `CLAUDE.md`'s "keep PRs small" rule:
    upsert-by-`(sourceName, sourceId)` logic, new CLI subcommand, tests against a fixture CSV (not a
    live network call in tests).
 3. **`GET /airfield?search=` endpoint** + OpenAPI doc - name substring / ICAO code match, empty
-   search returns the full ~1,200-row GB set, per Confirmed decisions above.
+   search returns the full ~1,200-row GB set, ordered alphabetically by `name` (recent-airfields
+   ranking isn't available yet at this chunk - see chunk 5 below).
 4. **`FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId` migration** - expand/backfill/
    contract sequence per the open question above. Likely its own sub-plan given the data-safety
    constraint, not a single PR.
-5. **`hobbs-ui`** - picker widget (search-as-you-type by name/code, no pre-filled default).
+5. **Recent-airfields ranking on `GET /airfield?search=`** - once chunk 4 lands, reorder results to
+   put the calling pilot's last N distinct flown airfields first (most recent first), everything else
+   alphabetical after. Needs the caller's `PilotId` from the session (same auth pattern as
+   `PilotEndpoint`'s privacy-scoped search) and a query against `FlightEntry` grouped by
+   `departureAirfieldId`/`arrivalAirfieldId` ordered by date.
+6. **`hobbs-ui`** - picker widget (search-as-you-type by name/code, no pre-filled default; recent
+   airfields surface naturally once chunk 5's ordering is in place, no extra UI work needed for that
+   part).
 
 ## Explicitly out of scope (left for later)
 
