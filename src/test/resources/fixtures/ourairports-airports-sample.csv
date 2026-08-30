@@ -1,0 +1,8 @@
+id,ident,type,name,latitude_deg,longitude_deg,elevation_ft,continent,iso_country,iso_region,municipality,scheduled_service,icao_code,iata_code,gps_code,local_code,home_link,wikipedia_link,keywords
+12345,EGCJ,small_airport,Sherburn-in-Elmet Airfield,53.7883,-1.2225,26,EU,GB,GB-ENG,Sherburn-in-Elmet,no,EGCJ,,EGCJ,,,,
+23456,EGNM,medium_airport,Leeds Bradford Airport,53.8659,-1.6606,681,EU,GB,GB-ENG,Leeds,yes,EGNM,LBA,EGNM,,,,
+34567,EGLL,large_airport,London Heathrow Airport,51.4706,-0.461941,83,EU,GB,GB-ENG,London,yes,EGLL,LHR,EGLL,,,,
+45678,UK-0001,small_airport,Some Farm Strip,54.0,-1.5,150,EU,GB,GB-ENG,Nowhere,no,,,UK-0001,,,,
+56789,LFPG,large_airport,Paris Charles de Gaulle Airport,49.0097,2.5479,392,EU,FR,FR-J,Paris,yes,LFPG,CDG,LFPG,,,,
+67890,EGXX,closed,A Closed Airfield,53.5,-1.0,100,EU,GB,GB-ENG,Somewhere,no,EGXX,,EGXX,,,,
+78901,UK-0002,heliport,City Centre Heliport,53.6,-1.1,50,EU,GB,GB-ENG,Somewhere,no,,,UK-0002,,,,
