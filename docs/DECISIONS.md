@@ -9,6 +9,32 @@ work is this repo's README "Not yet built" section and CLAUDE.md "Open work").
 
 Reverse-chronological - newest first.
 
+## 2026-08-30: CI made faster - full writeup in `docs/CI_PERFORMANCE.md`
+
+Three changes, only two of which worked as designed the first time:
+
+- **JUnit tests run classes and methods concurrently** (`src/test/resources/junit-platform.properties`).
+  Correcting an over-conservative first pass that defaulted methods to `same_thread` and left
+  `HobbsApplicationIntegrationTest` (83 of the suite's tests) fully serial regardless of core count -
+  the actual bottleneck, not the risk the conservative default was guarding against. Surfaced a real,
+  rare race once genuine concurrency was in play: `FailedAttemptRepository` had no injectable `Clock`,
+  unlike `RateLimitRepository` - fixed with the same pattern. `./gradlew test`: ~54s -> ~25s locally.
+- **Docker build caching didn't work, then did.** First attempt used
+  `RUN --mount=type=cache,target=/root/.gradle` - looked right, made three consecutive real deploys
+  slower (59s -> 96s -> 71s), not faster. Root cause: a cache *mount* is BuildKit-local state tied to
+  the runner's own disk, never exported by `cache-to: type=gha` (that only exports image layers) -
+  meaningless on GitHub Actions' ephemeral runners. Replaced with the standard package-manager Docker
+  pattern instead (copy `build.gradle`/the wrapper first, resolve dependencies into their own layer,
+  then copy the rest of the source) - genuine, exportable layer caching.
+- **Docs-only commits skip the expensive `build` job**, not the whole workflow. A trigger-level
+  `paths-ignore` looked like the obvious fix but is actively broken on a repo with a required status
+  check (this repo has one - see the entry below on branch protection - `build`, same as `hobbs-ui`):
+  a workflow that never triggers never posts any status, so GitHub leaves that required check stuck
+  "waiting to be reported" forever and blocks merging. Fixed with an always-running `changes` job
+  (via `dorny/paths-filter`) whose output conditionally skips the `build` job via `if:` - a job
+  skipped this way still reports "skipped", which GitHub counts as passing. Same pattern in
+  `hobbs-ui`, verified end-to-end there via a real docs-only PR reporting `MERGEABLE`.
+
 ## 2026-08-29: Pilot/account split implemented
 
 `Pilot` ("a person recordable on a flight") and `Account` (login/email/enabled-state) were one table.

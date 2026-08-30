@@ -54,8 +54,17 @@ This file provides guidance to Claude Code when working with code in this reposi
 - **Use the narrowest interface that fits.** `Map`/`List`/`Collection` rather than concrete
   implementations, unless the class genuinely needs the wider API.
 - **Never delete a branch, local or remote - no exceptions, not even a merged one, not even
-  `master`.** No branch protection available on a private repo without a paid plan, so this is the
-  only real backstop against an accidental deletion.
+  `master`.** This repo is *public* on GitHub, which is what makes branch protection (see below)
+  available at all - GitHub only offers it for free on public repos, not private ones, so a private
+  repo would have nothing backstopping this rule but the rule itself. `hobbs` being public means
+  branch protection now blocks deleting `master` directly too (see `docs/DECISIONS.md`'s 2026-08-29
+  entry - enabled since, not from day one), but not any other branch, so this rule is still the only
+  real backstop everywhere else.
+- **Branch protection requires the `build` status check before merging** (`gh api
+  repos/mojofunk5/hobbs/branches/master/protection` confirms it, same as `hobbs-ui` - both repos are
+  public) - a workflow change that stops `build` from ever reporting a status for some commits (e.g.
+  a trigger-level `paths-ignore`) will leave affected PRs stuck un-mergeable, not just skip CI
+  harmlessly. See `docs/CI_PERFORMANCE.md` for a worked example.
 - **A database migration must never break the code currently running against it.** The deploy
   pipeline runs `migrate` immediately before recreating the app container with the same new image
   (see Persistence in README.md), so migration and code normally move together in one deploy - but
