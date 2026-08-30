@@ -10,7 +10,10 @@ import java.util.UUID;
  * Same field shape as FlightEntryDto minus the server-generated id. Used both for a fully
  * hand-filled entry and for the draft a GPS-recorded FlightTrack pre-fills - flightTrackId is
  * optional either way (see FlightEntry's Javadoc: GPS recording is a fast-path onto this same
- * form, never a requirement).
+ * form, never a requirement). departureAirfieldId/arrivalAirfieldId are also optional - see
+ * FlightEntry's Javadoc on the ongoing departurePlace/arrivalPlace -> AirfieldId migration
+ * (docs/plans/airfield-picker.md); departurePlace/arrivalPlace are still required until that
+ * migration's contract step.
  */
 public class CreateFlightEntryDto {
 
@@ -21,6 +24,8 @@ public class CreateFlightEntryDto {
     private final OffsetDateTime departureTime;
     private final String arrivalPlace;
     private final OffsetDateTime arrivalTime;
+    private final UUID departureAirfieldId;
+    private final UUID arrivalAirfieldId;
     private final UUID pilotInCommandId;
     private final UUID coPilotId;
     private final int singleEngineMinutes;
@@ -44,6 +49,8 @@ public class CreateFlightEntryDto {
                                  @JsonProperty("departureTime") OffsetDateTime departureTime,
                                  @JsonProperty("arrivalPlace") String arrivalPlace,
                                  @JsonProperty("arrivalTime") OffsetDateTime arrivalTime,
+                                 @JsonProperty("departureAirfieldId") UUID departureAirfieldId,
+                                 @JsonProperty("arrivalAirfieldId") UUID arrivalAirfieldId,
                                  @JsonProperty("pilotInCommandId") UUID pilotInCommandId,
                                  @JsonProperty("coPilotId") UUID coPilotId,
                                  @JsonProperty("singleEngineMinutes") int singleEngineMinutes,
@@ -66,6 +73,8 @@ public class CreateFlightEntryDto {
         this.departureTime = departureTime;
         this.arrivalPlace = arrivalPlace;
         this.arrivalTime = arrivalTime;
+        this.departureAirfieldId = departureAirfieldId;
+        this.arrivalAirfieldId = arrivalAirfieldId;
         this.pilotInCommandId = pilotInCommandId;
         this.coPilotId = coPilotId;
         this.singleEngineMinutes = singleEngineMinutes;
@@ -109,6 +118,14 @@ public class CreateFlightEntryDto {
 
     public OffsetDateTime getArrivalTime() {
         return arrivalTime;
+    }
+
+    public UUID getDepartureAirfieldId() {
+        return departureAirfieldId;
+    }
+
+    public UUID getArrivalAirfieldId() {
+        return arrivalAirfieldId;
     }
 
     public UUID getPilotInCommandId() {

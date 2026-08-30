@@ -175,17 +175,19 @@ real time would intermittently fail whenever a second ticks over mid-test.
   - **Picking or registering a location (departure/arrival place).** See
     [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md): a self-owned `Airfield`
     reference table, seeded/reconciled from OurAirports' GB dataset (~1,200 active airfields), not
-    pilot-submitted - same reference-data pattern as the aircraft picker. Chunks 1-3 implemented
+    pilot-submitted - same reference-data pattern as the aircraft picker. Chunks 1-4 implemented
     (backend, on feature branches, not yet merged): the `airfield` table + `AirfieldRepository`, the
-    re-runnable `import-airfields` CLI subcommand (`AirfieldImportJob`), and
-    `GET /airfield?search=` (name substring or ICAO code prefix, empty search returns the full GB
-    set alphabetically - no minimum-length restriction, unlike aircraft's 2-char minimum, since
-    ~1,200 rows is small enough). `FlightEntry.departurePlace`/`arrivalPlace` are still plain
-    `String`s - see [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java).
-    Chunk 4 (migrating them to nullable `departureAirfieldId`/`arrivalAirfieldId` `AirfieldId`
-    references, expand-only - no backfill, no contract yet) and chunk 5 (recent-airfields ranking on
-    the search endpoint) are next; see `docs/DECISIONS.md`'s 2026-08-30 airfield-picker entries for
-    what's deliberately left undone. The picker searches by name or ICAO code with no pre-filled
+    re-runnable `import-airfields` CLI subcommand (`AirfieldImportJob`), `GET /airfield?search=`
+    (name substring or ICAO code prefix, empty search returns the full GB set alphabetically - no
+    minimum-length restriction, unlike aircraft's 2-char minimum, since ~1,200 rows is small enough),
+    and the expand step of `FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId`: nullable
+    `departureAirfieldId`/`arrivalAirfieldId` fields alongside the still-required free-text fields
+    (see [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java)). **Existing
+    rows will never get these ids backfilled** - there's no reliable way to match old free-text
+    place strings to a specific `Airfield` without unreliable fuzzy matching - and **no contract
+    step (dropping the free-text columns) is scheduled**; see `docs/DECISIONS.md`'s 2026-08-30
+    entry for the full reasoning. Chunk 5 (recent-airfields ranking on `GET /airfield?search=`,
+    using the new id columns) is next. The picker searches by name or ICAO code with no pre-filled
     default - deliberately, since William is a guide for what to build first, not a special case the
     UI hardcodes; no free-text "add an airfield" fallback for now. `hobbs-ui`'s picker widget (chunk
     6 of the plan) is a separate repo, not yet built.
