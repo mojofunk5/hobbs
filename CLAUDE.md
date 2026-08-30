@@ -17,6 +17,17 @@ This file provides guidance to Claude Code when working with code in this reposi
 - **Keep documentation in sync.** When making a significant change, update the relevant
   context/documentation files in the same change - this includes `CLAUDE.md`, `README.md`, and
   OpenAPI descriptions. Don't leave stale descriptions behind.
+- **Design in a doc PR, merged and reviewed, before any implementation code is written.** For
+  non-trivial work, the plan (a `docs/plans/*.md` doc, `docs/DECISIONS.md`/`docs/GLOSSARY.md`
+  updates, backlog entries in this file/`README.md`) is its own PR, reviewed and merged on its own -
+  see `docs/plans/pilot-account-split.md`/`docs/plans/logbook-entries.md`/`docs/plans/pilot-picker.md`
+  for the shape. Implementation then starts as a **new session** against the merged doc, not a
+  continuation of the planning conversation. The doc is written to carry all the context forward on
+  its own (decisions made and why, trade-offs weighed, what's explicitly out of scope) so the
+  implementation session only needs to read it, not have the planning conversation replayed into it.
+  This keeps planning free to explore and change direction without burning implementation budget on
+  the exploration, and keeps each implementation session small and focused on exactly what the doc
+  says to build - the same motivation as "keep PRs small" below, one level up.
 - **Don't auto-merge.** Open a PR and let Andy review it. Only merge when explicitly told to.
 - **Keep PRs small.** When implementing a multi-part plan (a new migration, several new domain
   classes/endpoints, a full test-suite update), look for natural seams and split the work into a
@@ -133,11 +144,27 @@ real time would intermittently fail whenever a second ticks over mid-test.
 - **Merging two `Pilot` records.** If someone registers their own account (a fresh `PilotId`) instead
   of using an invite that would've attached them to an unclaimed record someone else created, there's
   no way to reconcile the two afterwards. Deliberately out of scope for the pilot/account split.
-- **Pilot/aircraft search or pickers.** The logbook-entries plan
-  ([`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)) has `PilotId`/`AircraftId`
-  entered as a pasted-in id when adding an entry - workable for one real user's worth of test data,
-  but a real search-by-name UI needs a non-admin search endpoint first (today only
-  `GET /admin/pilots` exists, and there's no equivalent for aircraft at all).
+- **Pasted-in ids when adding a flight entry.** The logbook-entries plan
+  ([`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)) has `PilotId`/`AircraftId`/place
+  entered as raw text - workable for one real user's worth of test data, not for real use. Split into
+  three separate stories, since each has a different scoping/data-source question:
+  - **Picking a pilot you've flown with.** Design done -
+    [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md), not yet implemented. `Pilot` records
+    must be privacy-scoped by relationship (you only see someone if you created them or you've logged
+    a flight with them, plus yourself) - not a global list. Aircraft doesn't need this: it's already
+    modelled as shared across all pilots (see `AircraftEndpoint`'s doc comment).
+  - **Picking or registering an aircraft.** Not yet designed. No scoping question (aircraft are
+    already global, `GET /aircraft` returns everyone's) - just needs a search-by-registration
+    endpoint and a picker/create-inline UX in `hobbs-ui`, same shape as the pilot picker's UI half.
+  - **Picking or registering a location (departure/arrival place).** Not yet designed, and bigger
+    than the other two: `FlightEntry.departurePlace`/`arrivalPlace` are still plain `String`s today,
+    not an id referencing a real entity - see [`FlightEntry.java`]
+    (src/main/java/com/bonney/hobbs/domain/FlightEntry.java). Needs a domain decision before any UX
+    work: airfields are a finite, known set, so a self-owned `Location`/`Airfield` reference table
+    (seeded from a public ICAO dataset, carrying coordinates) is likely the right call over a live
+    Google Maps dependency - especially since night-time-from-sunset-tables (see FlightTrack →
+    FlightEntry derivation, above) already wants per-airfield coordinates, not a free-text name.
+    Andy to confirm before this becomes a plan doc.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
