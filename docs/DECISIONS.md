@@ -110,3 +110,22 @@ repo: one Caddy instance, one Caddyfile with a site block per domain
 (`things.bssd.co.uk`/`hobbs.bssd.co.uk`), each app's own repo just deploys static files/proxies to
 its own backend container by name. Neither `hobbs` nor `hobbs-ui` runs its own reverse proxy or holds
 a TLS cert anymore - see the CLAUDE.md note above.
+
+## 2026-08-30: Aircraft picker - open questions resolved during implementation
+
+[`docs/plans/aircraft-picker.md`](plans/aircraft-picker.md) left two things for review before
+implementation; resolved as follows rather than blocking on a second doc round-trip:
+
+- **DTO shape for browse vs. picker:** one expanded `AircraftDto` (all reference fields, most
+  nullable), returned by the single `GET /aircraft?search=` endpoint and reused by both the picker
+  (which only renders `id`/`registration`/`make`/`model`) and the Browse Aircraft page (which
+  renders everything). Two DTOs (and two endpoints) would just be the same query shaped twice for
+  no real behavioural difference - the picker doesn't pay a meaningful cost for the response
+  carrying fields it ignores.
+- **Index on `aircraft.registration`/`make`/`model`:** `registration` already had a unique-constraint
+  index; added plain btree indexes on `make`/`model` in `V7__aircraft_reference_data.sql`. Deliberately
+  **not** reaching for a substring-search index (Postgres `pg_trgm` or similar) yet - a btree index
+  doesn't actually speed up the endpoint's arbitrary-substring `LIKE '%x%'` match, and there's no
+  production-scale data yet to confirm the substring scan is actually slow. Revisit if/when
+  `GET /aircraft?search=` is observed to be slow against the real ~600k-row imported table - same
+  "don't build ahead of a confirmed need" reasoning as the rest of this repo's practice.
