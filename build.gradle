@@ -54,8 +54,8 @@ dependencies {
     implementation 'io.javalin.community.openapi:javalin-openapi-plugin:7.2.3'
     implementation 'io.javalin.community.openapi:javalin-swagger-plugin:7.2.3'
     annotationProcessor 'io.javalin.community.openapi:openapi-annotation-processor:7.2.3'
-    implementation 'org.flywaydb:flyway-core:13.3.0'
-    implementation 'org.flywaydb:flyway-database-postgresql:13.3.0'
+    implementation 'org.flywaydb:flyway-core:13.4.0'
+    implementation 'org.flywaydb:flyway-database-postgresql:13.4.0'
     implementation 'com.h2database:h2:2.4.240'
 
     testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
@@ -134,7 +134,7 @@ tasks.named('dependencyUpdates').configure {
 // }
 
 jacoco {
-    toolVersion = '0.8.13'
+    toolVersion = '0.8.15'
 }
 
 jacocoTestReport {
