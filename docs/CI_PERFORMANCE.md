@@ -42,11 +42,12 @@ before `COPY . .`. The dependency-resolution layer only invalidates when the man
 themselves change, not on every commit.
 
 ### Skipping CI for docs-only commits, safely
-Split into an always-running `changes` job (using `dorny/paths-filter` with
-`predicate-quantifier: every`, so it only reports docs-only when *every* changed file matches - a
-commit touching `CLAUDE.md` alongside real code must still run the full build) feeding a job-level
-`if:` on `build`. See "What didn't work" for why this has to be a job-level skip, not a
-workflow-trigger-level one.
+Split into an always-running `changes` job feeding a job-level `if:` on `build`. See "What didn't
+work" for why this has to be a job-level skip (not workflow-trigger-level), and separately for a real
+bug in how "is this commit docs-only" was originally detected. The `changes` job now does that
+detection itself with a plain shell loop (`git diff --name-only` against the previous commit, checked
+file-by-file) rather than a third-party action, specifically because the action's option that looked
+right turned out not to mean what it looked like it meant.
 
 ### Gradle task output caching + configuration caching
 `gradle.properties` (`org.gradle.caching=true`, `org.gradle.configuration-cache=true`). Verified
@@ -93,6 +94,21 @@ for it at all - GitHub shows that required check stuck "waiting to be reported" 
 blocks merging, the opposite of the goal. Fixed with the job-conditional pattern described above
 instead.
 
+### `dorny/paths-filter`'s `predicate-quantifier: every` doesn't mean "every changed file matches"
+It means "every declared *pattern* has at least one matching file" - a materially different relation.
+With filters `['**/*.md', 'docs/**']`, a single changed doc file satisfies *both* patterns on its own,
+so `every` was satisfied regardless of what else changed - not "every changed file is a doc" as
+intended. Real impact, not just theoretical: a PR ([hobbs#23](https://github.com/mojofunk5/hobbs/pull/23))
+that changed `gradle.properties` (real config) alongside `docs/CI_PERFORMANCE.md` got misclassified
+docs-only and had its entire `build`/`deploy` silently skipped on merge - the actual Gradle-caching
+change that PR shipped was never run through CI at all. Checked the blast radius across every run
+since the docs-only-skip mechanism was introduced (`gh run list` + checking each `build` job's
+conclusion against that commit's actual file list): only this one merge was affected, everything else
+correctly ran or correctly skipped. Fixed by replacing the action with a plain shell loop over
+`git diff --name-only`, checking each changed file individually - verified locally against five cases
+(docs-only, the exact mixed-file bug scenario, code-only, a nested `docs/` path, and a filename that
+merely contains "docs" without being under the `docs/` directory) before shipping the fix.
+
 ### Over-conservative test parallelism (first pass)
 The first version of `junit-platform.properties` defaulted test *methods* to `same_thread`, only
 parallelizing across classes - guarding against a real risk (`SmtpEmailSenderTest`'s shared fixture)
@@ -123,11 +139,14 @@ the cost of populating the new dependency layer for the first time (81s, no bett
 confirming on the next real deploy that follows an ordinary code change.
 
 ### Confirm Gradle task caching on a real CI run
-Verified thoroughly locally (see "What worked" above), but never actually run in CI yet - the
-assumption that `setup-java`'s `cache: gradle` already persists `~/.gradle/caches/build-cache-1`
-alongside the dependency artifacts it's confirmed to cache is reasonable (same parent directory) but
-unconfirmed. Needs watching on the next real CI run: does `compileTestJava`/`test` show `FROM-CACHE`
-in the log the way it did locally, and does the `Build and test` step's wall time actually drop.
+Verified thoroughly locally (see "What worked" above), but never actually run in CI yet - the PR that
+shipped it ([hobbs#23](https://github.com/mojofunk5/hobbs/pull/23)) is the same one whose merge got
+wrongly skipped by the `paths-filter` bug above, so `build` never ran against it at all. Still open,
+now for two independent reasons: confirming `setup-java`'s `cache: gradle` actually persists
+`~/.gradle/caches/build-cache-1` the way assumed (same parent directory as the dependency artifacts
+it's confirmed to cache, but unconfirmed), and simply getting this change through a real CI run for
+the first time. Watch the next real code commit's `Build and test` step for `FROM-CACHE` in the log
+and an actual wall-time drop.
 
 ### Untouched: `dependencyUpdates` step, jacoco report generation
 Both cheap already (~4-6s and ~1.5s respectively per the `--profile` breakdown) - not pursued given
