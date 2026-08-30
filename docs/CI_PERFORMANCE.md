@@ -15,7 +15,7 @@ CI numbers vary run to run, so treat these as representative, not exact.
 | --- | --- | --- | --- |
 | `Build and test` (compile + `:test` + jacoco) | ~52s | ~27-47s | Confirmed, live (varies with how much actually changed) |
 | `:test` task alone | ~54s | ~25s | Confirmed, local |
-| `test jacocoTestReport` with Gradle task caching | ~35s (uncached) | ~8-12s | Confirmed local only - real CI never showed a `FROM-CACHE` hit until the `setup-java` cache-scope bug (below) was fixed |
+| `Build and test` with Gradle task caching warm | ~52s (original) | ~13s | **Confirmed on real CI** - `Cache hit for restore-key`, `compileJava`/`compileTestJava`/`test`/`jacocoTestReport` all `FROM-CACHE` in the actual log |
 | `Build and push image` (Docker) | ~59s | ~71-81s (attempt 1, reverted); dependency layer now confirmed `CACHED`, total step time still noisy | Fixed, but not a clean single "after" number - see below |
 | Docs-only commit | full pipeline (~130s+ end to end) | `changes` job only (~5s) | Confirmed working, including surviving a real false-positive bug and fix (see below) |
 
@@ -86,6 +86,11 @@ directory" reasoning sounding plausible enough to ship without checking first. F
 (the standard pattern for a cache that accumulates over time rather than being invalidated wholesale -
 the build cache is already content-addressed internally by task input hashes, so restoring a slightly
 stale snapshot just means some entries go unused, not incorrect results).
+
+**Confirmed fixed on the next real run**: `Cache hit for restore-key: gradle-build-cache-Linux-...`,
+followed by `compileJava`/`compileTestJava`/`test`/`jacocoTestReport` all showing `FROM-CACHE` in the
+actual log. `Build and test` dropped to ~13s on that run, down from the ~52s original baseline - the
+clearest single confirmed win in this whole document.
 
 ### `--mount=type=cache` for the Docker build's Gradle cache
 Looked right, made things worse: three consecutive real deploys came in at 96s and 71s against a 59s
@@ -165,11 +170,6 @@ repo's own `docs/CI_PERFORMANCE.md`/`DECISIONS.md` convention exists partly to k
 honest - worth leaving the wrong guess visible rather than quietly fixing it, per that convention.
 
 ## Open opportunities
-
-### Confirm the Gradle build cache actually persists now
-The explicit `actions/cache` step (see "What didn't work" above) has only just shipped - needs
-confirming on the next two real CI runs that `FROM-CACHE` actually shows up in the `Build and test`
-log, the way `setup-java`'s cache alone never delivered.
 
 ### Confirm the Docker layer cache's net effect over more commits
 The dependency-resolution layer is confirmed hitting `CACHED` (see "What worked" above), but total
