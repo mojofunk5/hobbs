@@ -13,11 +13,11 @@ CI numbers vary run to run, so treat these as representative, not exact.
 
 | Stage | Before | After | Status |
 | --- | --- | --- | --- |
-| `Build and test` (compile + `:test` + jacoco) | ~52s | ~38s | Confirmed, live |
+| `Build and test` (compile + `:test` + jacoco) | ~52s | ~27-47s | Confirmed, live (varies with how much actually changed) |
 | `:test` task alone | ~54s | ~25s | Confirmed, local |
-| `test jacocoTestReport` with Gradle task caching | ~35s (uncached) | ~8-12s | Confirmed, local only - not yet run on real CI |
-| `Build and push image` (Docker) | ~59s | ~71-81s (attempt 1, reverted) | **Regressed**, then fixed - see below |
-| Docs-only commit | full pipeline (~130s+ end to end) | `changes` job only (~5s) | Confirmed working, not yet timed on a real docs-only `hobbs` commit |
+| `test jacocoTestReport` with Gradle task caching | ~35s (uncached) | ~8-12s | Confirmed local only - real CI never showed a `FROM-CACHE` hit until the `setup-java` cache-scope bug (below) was fixed |
+| `Build and push image` (Docker) | ~59s | ~71-81s (attempt 1, reverted); dependency layer now confirmed `CACHED`, total step time still noisy | Fixed, but not a clean single "after" number - see below |
+| Docs-only commit | full pipeline (~130s+ end to end) | `changes` job only (~5s) | Confirmed working, including surviving a real false-positive bug and fix (see below) |
 
 ## What worked
 
@@ -40,6 +40,13 @@ See "What didn't work" below for the failed first attempt. The version that actu
 Standard package-manager Docker pattern - the same reason a Node image does `COPY package.json`
 before `COPY . .`. The dependency-resolution layer only invalidates when the manifest files
 themselves change, not on every commit.
+
+Confirmed on a real deploy (a commit that changed source but not `build.gradle`): the build log shows
+`CACHED` for that layer, and it skips straight to reusing it rather than re-running
+`./gradlew dependencies`. Not free, though - the `gha` cache backend still has to download the actual
+layer contents (~190MB+ of blobs seen in one run) over the network to restore it, so total deploy time
+still varies commit to commit with how much genuinely needs rebuilding (`shadowJar` itself, and
+`generateJooq`, still always re-run - see the jOOQ entry above and below).
 
 ### Skipping CI for docs-only commits, safely
 Split into an always-running `changes` job feeding a job-level `if:` on `build`. See "What didn't
@@ -64,12 +71,21 @@ Confirmed compatible with every task graph CI actually runs (`test jacocoTestRep
 `dependencyUpdates`, `shadowJar` for the Docker build) - none errored or warned about configuration
 cache incompatibility.
 
-Should need no extra CI wiring: `setup-java`'s existing `cache: gradle` already caches all of
-`~/.gradle/caches`, and Gradle's build cache lives at `~/.gradle/caches/build-cache-1` - same parent
-directory as the dependency artifacts that cache option already persists. Not yet confirmed on a real
-CI run, though - see "Open opportunities".
+Getting this to actually persist across CI runs needed a second fix - see "What didn't work" for why
+the first version's assumption about `setup-java`'s cache was wrong.
 
 ## What didn't work (and why)
+
+### Assuming `setup-java`'s `cache: gradle` covers the Gradle build cache
+It doesn't - confirmed by checking two consecutive real CI runs' logs for `FROM-CACHE` and finding
+none in either, after `org.gradle.caching=true` had genuinely been enabled and merged. `setup-java`'s
+Gradle caching is scoped to dependency artifacts and the wrapper; the build cache lives in a sibling
+directory (`~/.gradle/caches/build-cache-1`) that option never touches, despite the "same parent
+directory" reasoning sounding plausible enough to ship without checking first. Fixed with an explicit
+`actions/cache` step targeting that path directly, using a per-run key plus a prefix `restore-keys`
+(the standard pattern for a cache that accumulates over time rather than being invalidated wholesale -
+the build cache is already content-addressed internally by task input hashes, so restoring a slightly
+stale snapshot just means some entries go unused, not incorrect results).
 
 ### `--mount=type=cache` for the Docker build's Gradle cache
 Looked right, made things worse: three consecutive real deploys came in at 96s and 71s against a 59s
@@ -132,21 +148,18 @@ honest - worth leaving the wrong guess visible rather than quietly fixing it, pe
 
 ## Open opportunities
 
-### Confirm the fixed Docker layer caching on a second real deploy
-The corrected Dockerfile (see "What worked" above) has only had its first run, which necessarily pays
-the cost of populating the new dependency layer for the first time (81s, no better than baseline yet)
-- same shape as every other cache fix in this doc needing a second run to prove itself. Needs
-confirming on the next real deploy that follows an ordinary code change.
+### Confirm the Gradle build cache actually persists now
+The explicit `actions/cache` step (see "What didn't work" above) has only just shipped - needs
+confirming on the next two real CI runs that `FROM-CACHE` actually shows up in the `Build and test`
+log, the way `setup-java`'s cache alone never delivered.
 
-### Confirm Gradle task caching on a real CI run
-Verified thoroughly locally (see "What worked" above), but never actually run in CI yet - the PR that
-shipped it ([hobbs#23](https://github.com/mojofunk5/hobbs/pull/23)) is the same one whose merge got
-wrongly skipped by the `paths-filter` bug above, so `build` never ran against it at all. Still open,
-now for two independent reasons: confirming `setup-java`'s `cache: gradle` actually persists
-`~/.gradle/caches/build-cache-1` the way assumed (same parent directory as the dependency artifacts
-it's confirmed to cache, but unconfirmed), and simply getting this change through a real CI run for
-the first time. Watch the next real code commit's `Build and test` step for `FROM-CACHE` in the log
-and an actual wall-time drop.
+### Confirm the Docker layer cache's net effect over more commits
+The dependency-resolution layer is confirmed hitting `CACHED` (see "What worked" above), but total
+`Build and push image` time is still noisy commit to commit (68s one run, 119s the next) since
+`generateJooq` and the actual compile/package step always re-run regardless, and importing a cached
+layer still costs real network transfer time. Worth watching over several more ordinary commits to
+see whether the average genuinely beats the ~59s pre-caching baseline, rather than trusting any single
+number.
 
 ### Untouched: `dependencyUpdates` step, jacoco report generation
 Both cheap already (~4-6s and ~1.5s respectively per the `--profile` breakdown) - not pursued given

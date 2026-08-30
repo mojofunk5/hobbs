@@ -66,6 +66,23 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # setup-java's own cache: gradle only covers dependency artifacts and the wrapper - NOT
+      # Gradle's task-output build cache (~/.gradle/caches/build-cache-1, a sibling directory it
+      # doesn't touch). Confirmed the hard way: two consecutive real CI runs after enabling
+      # org.gradle.caching=true (see docs/CI_PERFORMANCE.md) showed zero FROM-CACHE hits in either.
+      # Needs its own explicit cache step. No per-commit key (the build cache is already
+      # content-addressed internally by task input hashes, so a stale entry just goes unused rather
+      # than causing incorrect results) - a unique key per run plus a prefix restore-key is the
+      # standard "always save a fresh snapshot, always restore from the latest previous one" pattern
+      # for a cache that grows over time rather than being invalidated wholesale.
+      - name: Cache Gradle build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          key: gradle-build-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            gradle-build-cache-${{ runner.os }}-
+
       - name: Build and test
         run: ./gradlew test jacocoTestReport
 
