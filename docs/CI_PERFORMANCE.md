@@ -62,6 +62,17 @@ built jar directly (`java -cp ... HobbsApplication migrate` against a throwaway 
 confirm the artifact itself is unaffected by *how* it was built - a real Flyway migration ran
 successfully, same as it always has.
 
+**Correction, same day**: the first real deploy after this merged failed outright -
+`COPY build/libs/hobbs-0.0.1-SNAPSHOT-all.jar app.jar: "not found"`. `.dockerignore` excludes `build`
+wholesale (a leftover from when the old Dockerfile did its own `COPY . .` and needed the compiled
+output kept out of the image) - BuildKit silently skips a file under an ignored directory rather than
+erroring at the ignore-check itself, so this wasn't caught by anything short of a real run. Everything
+that *could* be verified locally (that `shadowJar` is cacheable, that the built jar itself runs
+correctly) was - this specific failure mode only exists in the download-artifact-into-a-dockerignored-
+path interaction, which has no local equivalent to test against. Fixed by downloading the jar to the
+repo root instead of `build/libs/` - simpler than fighting `.dockerignore`'s gitignore-style
+negation-pattern semantics to carve out an exception.
+
 ### Skipping CI for docs-only commits, safely
 Split into an always-running `changes` job feeding a job-level `if:` on `build`. See "What didn't
 work" for why this has to be a job-level skip (not workflow-trigger-level), and separately for a real
