@@ -49,9 +49,9 @@ class AircraftImportJobTest {
     void importsEveryRowWithARegistrationAndSkipsThoseWithout() throws IOException {
         AircraftImportJob.Result result = job.importFrom(fixtureReader());
 
-        assertThat(result.processed(), is(5));
+        assertThat(result.processed(), is(6));
         assertThat(result.skipped(), is(1));
-        assertThat(aircraftRepository.findAll().size(), is(5));
+        assertThat(aircraftRepository.findAll().size(), is(6));
     }
 
     @Test
@@ -64,6 +64,16 @@ class AircraftImportJobTest {
         assertThat(aircraft.getManufacturerIcao(), is("ROCKWELL"));
         assertThat(aircraft.getTypeCode(), is("AC90"));
         assertThat(aircraft.getEngineCategory(), is(EngineCategory.MULTI_ENGINE));
+    }
+
+    @Test
+    void importsARowWithAManufacturerIcaoLongerThanTenCharacters() throws IOException {
+        // Real OpenSky data broke V7's guessed VARCHAR(10) cap on manufacturer_icao - this
+        // mirrors the shape that crashed the real import (see V9__aircraft_reference_columns_unbounded.sql).
+        job.importFrom(fixtureReader());
+
+        Aircraft aircraft = aircraftRepository.findByRegistration("N12345").orElseThrow();
+        assertThat(aircraft.getManufacturerIcao(), is("COMMANDER AIRCRAFT"));
     }
 
     @Test
@@ -104,7 +114,7 @@ class AircraftImportJobTest {
         job.importFrom(fixtureReader());
         job.importFrom(fixtureReader());
 
-        assertThat(aircraftRepository.findAll().size(), is(5));
+        assertThat(aircraftRepository.findAll().size(), is(6));
     }
 
     @Test
@@ -129,7 +139,7 @@ class AircraftImportJobTest {
         job.importFrom(fixtureReader());
 
         assertThat(aircraftRepository.findById(manuallyRegistered.getId()), is(Optional.of(manuallyRegistered)));
-        assertThat(aircraftRepository.findAll().size(), is(6));
+        assertThat(aircraftRepository.findAll().size(), is(7));
     }
 
     private Reader fixtureReader() {
