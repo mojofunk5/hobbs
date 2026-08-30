@@ -143,6 +143,17 @@ class AircraftRepositoryTest {
         assertThat(repository.search("cessna", 2).size(), is(2));
     }
 
+    @Test
+    void searchByRegistrationOnlyMatchesRegistrationNotMakeOrModel() {
+        Aircraft cessna = anAircraft(AircraftId.random(), "G-ABCD", "Cessna", "152");
+        Aircraft piper = anAircraft(AircraftId.random(), "G-WXYZ", "Piper", "Warrior");
+        repository.save(cessna);
+        repository.save(piper);
+
+        assertThat(repository.searchByRegistration("ABCD", 50), contains(cessna));
+        assertThat(repository.searchByRegistration("warrior", 50), is(List.of()));
+    }
+
     private static Aircraft anAircraft(AircraftId id, String registration, String make, String model) {
         return new Aircraft(id, registration, make, model, EngineCategory.SINGLE_ENGINE,
                 null, null, null, null, null, null, null, null);
