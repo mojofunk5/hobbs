@@ -2,23 +2,42 @@ name: Java CI with Gradle
 
 on:
   push:
-    # Skip the whole workflow - Java build/test *and*, on master, the full Docker rebuild/push/VPS
-    # redeploy - when every changed file is documentation. paths-ignore only skips the run when ALL
-    # changed files match, so a commit that touches CLAUDE.md/README.md alongside real code (our own
-    # "keep docs in sync" practice) still runs normally - only a genuinely docs-only commit (like our
-    # doc-PR-first plan docs) is skipped. No branch protection/required status checks on this repo
-    # (see CLAUDE.md's Working Practices) to worry about blocking a merge either.
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
 
 permissions:
   contents: write
   checks: write
 
 jobs:
-  build:
+  # Always runs (no trigger-level path filter) - deliberately, so this workflow always reports a
+  # status. A trigger-level paths-ignore looked equivalent but isn't: if the whole workflow never
+  # triggers, no check ever gets posted for this commit, which - on a repo with a required status
+  # check (see hobbs-ui's branch protection) - leaves that required check stuck "waiting to be
+  # reported" forever and blocks merging. A *job* that's conditionally skipped via `if:`, by
+  # contrast, still reports a "skipped" status, which GitHub counts as passing for a required check.
+  # This repo has no required checks today (see CLAUDE.md's Working Practices), but using the same
+  # job-conditional pattern as hobbs-ui rather than the trigger-level one keeps both repos consistent
+  # and this one safe if branch protection is ever added here too.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # every, not the default some - only skip when ALL changed files are docs. A commit that
+          # touches CLAUDE.md/README.md alongside real code (our "keep docs in sync" practice) must
+          # still run the full build.
+          predicate-quantifier: every
+          filters: |
+            docs_only:
+              - '**/*.md'
+              - 'docs/**'
 
+  build:
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
 
     steps:
