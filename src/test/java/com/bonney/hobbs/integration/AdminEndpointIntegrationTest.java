@@ -1,7 +1,6 @@
 package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
-import com.bonney.hobbs.dto.CreateAircraftDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import com.bonney.hobbs.dto.FlightEntryDto;
 import com.bonney.hobbs.dto.InvitePilotDto;
@@ -128,11 +127,11 @@ class AdminEndpointIntegrationTest extends AbstractIntegrationTest {
     void adminCanExpirePilotSession() {
         SessionDto session = register("ToExpire", "toexpire@example.com", "Password123");
         HobbsClient asPilot = createAuthenticatedClient(session.getSessionId());
-        asPilot.listAircraft(); // session is valid before expiry
+        asPilot.searchAircraft("xx"); // session is valid before expiry
 
         adminClient.adminExpireSessions(session.getPilotId());
 
-        assertThrows(FeignException.Unauthorized.class, asPilot::listAircraft);
+        assertThrows(FeignException.Unauthorized.class, () -> asPilot.searchAircraft("xx"));
     }
 
     @Test
@@ -399,7 +398,7 @@ class AdminEndpointIntegrationTest extends AbstractIntegrationTest {
     void deletingAnAccountPreservesTheFlightHistoryUnderTheSamePilotIdAsAnUnclaimedRecord() {
         SessionDto session = register("Del2", "del-flighthistory@example.com", "Password123");
         HobbsClient authedClient = createAuthenticatedClient(session.getSessionId());
-        UUID aircraftId = authedClient.createAircraft(new CreateAircraftDto("G-KEEP", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        UUID aircraftId = seedAircraft("G-KEEP", "Cessna", "152");
         FlightEntryDto flight = authedClient.createFlightEntry(aFlightEntry(authedClient, aircraftId, null));
 
         authedClient.deletePilot(session.getPilotId());

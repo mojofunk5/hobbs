@@ -13,6 +13,14 @@ import java.util.Optional;
  */
 public class Logbook {
 
+    /**
+     * At least 2 characters, matching {@link AircraftRepository#search}'s own required-search
+     * contract - the caller (the endpoint) must reject anything shorter before this is even
+     * called, but this is the actual source of truth for the limit both check against.
+     */
+    public static final int MIN_AIRCRAFT_SEARCH_LENGTH = 2;
+    private static final int MAX_AIRCRAFT_SEARCH_RESULTS = 50;
+
     private final FlightEntryRepository flightEntryRepository;
     private final AircraftRepository aircraftRepository;
 
@@ -45,14 +53,10 @@ public class Logbook {
         return flightEntryRepository.findAllByPilotId(pilotId);
     }
 
-    public Aircraft createAircraft(String registration, String make, String model, EngineCategory engineCategory) {
-        Aircraft aircraft = new Aircraft(AircraftId.random(), registration, make, model, engineCategory,
-                null, null, null, null, null, null, null, null);
-        aircraftRepository.save(aircraft);
-        return aircraft;
-    }
-
-    public List<Aircraft> listAircraft() {
-        return aircraftRepository.findAll();
+    public List<Aircraft> searchAircraft(String search) {
+        if (search == null || search.length() < MIN_AIRCRAFT_SEARCH_LENGTH) {
+            throw new InvalidAircraftSearchException(MIN_AIRCRAFT_SEARCH_LENGTH);
+        }
+        return aircraftRepository.search(search, MAX_AIRCRAFT_SEARCH_RESULTS);
     }
 }

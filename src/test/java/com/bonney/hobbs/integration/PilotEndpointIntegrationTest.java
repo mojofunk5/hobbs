@@ -2,7 +2,6 @@ package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
 import com.bonney.hobbs.dto.ClaimInviteRequestDto;
-import com.bonney.hobbs.dto.CreateAircraftDto;
 import com.bonney.hobbs.dto.CreatePilotDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import com.bonney.hobbs.dto.LoginDto;
@@ -49,7 +48,7 @@ class PilotEndpointIntegrationTest extends AbstractIntegrationTest {
     @Test
     void searchPilotsIncludesAPilotFlownWithAsPilotInCommandOrCoPilot() {
         HobbsClient william = createAuthenticatedClient();
-        UUID aircraftId = william.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
         william.createFlightEntry(aFlightEntry(william, aircraftId, null));
 
         List<PilotSummaryDto> known = william.searchPilots();

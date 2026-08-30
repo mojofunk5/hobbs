@@ -25,6 +25,17 @@ java -jar build/libs/hobbs-0.0.1-SNAPSHOT-all.jar 8080
 
 By default the app creates an H2 file database at `./hobbs.mv.db` in the working directory.
 
+### Seeding aircraft reference data
+
+`Aircraft` is reference data (see the model summary below), imported/reconciled from an
+already-downloaded copy of [OpenSky's aircraftDatabase.csv](https://opensky-network.org/datasets/metadata/aircraftDatabase.csv)
+rather than pulled live - not a server-boot side effect, same "explicit, deliberate step" reasoning
+as `migrate`, and re-runnable/idempotent (upserts by registration, never deletes):
+
+```bash
+java -jar build/libs/hobbs-0.0.1-SNAPSHOT-all.jar import-aircraft /path/to/aircraftDatabase.csv
+```
+
 ### Running via Docker Compose
 
 ```bash
@@ -46,7 +57,7 @@ Brings up Postgres and the app only, at `http://localhost:8080`. The frontend is
 ./gradlew test jacocoTestReport
 ```
 
-248 tests, 94% instruction / 84% branch coverage: full coverage of the auth/session/referral-code/
+313 tests, 93% instruction / 84% branch coverage: full coverage of the auth/session/referral-code/
 admin/password-reset subsystem (unit tests plus end-to-end integration tests, one class per endpoint
 - `HealthEndpointIntegrationTest`, `AircraftEndpointIntegrationTest`, `FlightEntryEndpointIntegrationTest`,
 `PilotEndpointIntegrationTest`, `AuthEndpointIntegrationTest`, `AdminEndpointIntegrationTest` - sharing
@@ -55,7 +66,8 @@ fixture setup via `AbstractIntegrationTest`; see
 covering register/login, admin/referral-code flows, and the 401/403/404 auth-boundary cases, plus
 tests for the flight domain - `LogbookTest` (mocked repositories), `AircraftRepositoryTest`,
 `FlightEntryRepositoryTest`, `FlightTrackRepositoryTest`, `SimulatorSessionRepositoryTest` (real H2
-via Flyway), value-object tests (`PilotTest`, `AircraftTest`, `FlightEntryTest`, `FlightTrackTest`,
+via Flyway), `AircraftImportJobTest` (against a checked-in fixture CSV, never a live network call),
+value-object tests (`PilotTest`, `AircraftTest`, `FlightEntryTest`, `FlightTrackTest`,
 `SimulatorSessionTest`), and `AppConfigTest`.
 
 `RateLimitRepositoryTest` uses an injectable `Clock` on `RateLimitRepository` rather than the real
@@ -90,8 +102,14 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   `pilot_id`. A `Pilot` has an account iff a matching `Account` row exists; a `Pilot` with none is an
   "unclaimed" record, e.g. a co-pilot logged before they'd signed up. See
   [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md) for the full design.
-- **Aircraft** - registration, make, model, engine category. Shared across pilots, not scoped to one
-  account (a club trainer only needs registering once)
+- **Aircraft** - reference data seeded from OpenSky's aircraftDatabase.csv
+  ([`docs/plans/aircraft-picker.md`](docs/plans/aircraft-picker.md)), not pilot-submitted - there is no
+  `POST /aircraft`. registration/make/model plus engine category (derived from OpenSky's
+  `icaoaircrafttype` where parseable, else `null`) and a handful of nullable OpenSky reference fields
+  (manufacturer ICAO code, type code, serial number, operator, owner, built year, engines,
+  category description). Shared across pilots, not scoped to one account.
+  `GET /aircraft?search=` (required, minimum 2 characters, capped at 50 results) backs both the
+  flight-entry aircraft picker and the Browse Aircraft page in `hobbs-ui`.
 - **FlightEntry** - one row of the logbook: date, departure/arrival (place + time),
   `pilotInCommandId`/`coPilotId` (both `PilotId`s - see `docs/GLOSSARY.md`'s **PIC** entry for how
   the PIC can differ from the entry's owner), and every duration (single/multi-engine, total, night,
