@@ -15,6 +15,7 @@ CI numbers vary run to run, so treat these as representative, not exact.
 | --- | --- | --- | --- |
 | `Build and test` (compile + `:test` + jacoco) | ~52s | ~38s | Confirmed, live |
 | `:test` task alone | ~54s | ~25s | Confirmed, local |
+| `test jacocoTestReport` with Gradle task caching | ~35s (uncached) | ~8-12s | Confirmed, local only - not yet run on real CI |
 | `Build and push image` (Docker) | ~59s | ~71-81s (attempt 1, reverted) | **Regressed**, then fixed - see below |
 | Docs-only commit | full pipeline (~130s+ end to end) | `changes` job only (~5s) | Confirmed working, not yet timed on a real docs-only `hobbs` commit |
 
@@ -46,6 +47,26 @@ Split into an always-running `changes` job (using `dorny/paths-filter` with
 commit touching `CLAUDE.md` alongside real code must still run the full build) feeding a job-level
 `if:` on `build`. See "What didn't work" for why this has to be a job-level skip, not a
 workflow-trigger-level one.
+
+### Gradle task output caching + configuration caching
+`gradle.properties` (`org.gradle.caching=true`, `org.gradle.configuration-cache=true`). Verified
+locally before shipping, correcting an earlier guess in this doc's own "Open opportunities" section
+about `generateJooq` specifically (see below) - `compileJava`/`compileTestJava`/`test`/
+`jacocoTestReport` are all genuinely cacheable, and Gradle's ABI-aware "compile avoidance" means
+`compileTestJava`/`test` can still hit `FROM-CACHE` even when a main source file changes, as long as
+the change doesn't affect any public API surface (a comment, a private method body, a log statement -
+the common case for most ordinary commits, not just identical-source reruns). Measured locally with
+`test jacocoTestReport`: ~35s (build cache present but nothing cached yet) -> ~8s (no source changes)
+-> ~12s (one main source file changed, comment-only, so compile avoidance still kicks in for
+downstream tasks). Configuration cache adds a further, smaller win on top (~8s -> ~6s locally).
+Confirmed compatible with every task graph CI actually runs (`test jacocoTestReport`,
+`dependencyUpdates`, `shadowJar` for the Docker build) - none errored or warned about configuration
+cache incompatibility.
+
+Should need no extra CI wiring: `setup-java`'s existing `cache: gradle` already caches all of
+`~/.gradle/caches`, and Gradle's build cache lives at `~/.gradle/caches/build-cache-1` - same parent
+directory as the dependency artifacts that cache option already persists. Not yet confirmed on a real
+CI run, though - see "Open opportunities".
 
 ## What didn't work (and why)
 
@@ -83,35 +104,30 @@ the default to concurrent and opting out only that one class got the real win, b
 genuine (rare) race in `FailedAttemptRepository` that the conservative version had been masking rather
 than avoiding - see the Clock-injection fix in `DECISIONS.md`.
 
+### Guessing `generateJooq` was cacheable, instead of checking
+An earlier version of this doc's "Open opportunities" section reasoned that `generateJooq` was
+"plausibly cacheable" since it only depends on the migration SQL files, not the whole source tree -
+sounded right, was wrong. Checked with `./gradlew --build-cache generateJooq --info` before writing
+the fix below: the `nu.studer.jooq` plugin's task hardcodes `Task.upToDateWhen is false`, meaning it
+always considers itself out of date and re-executes regardless of the build cache, migrations included
+- Gradle even computes and stores a cache key for it, but never has a chance to load from one. This
+repo's own `docs/CI_PERFORMANCE.md`/`DECISIONS.md` convention exists partly to keep a record like this
+honest - worth leaving the wrong guess visible rather than quietly fixing it, per that convention.
+
 ## Open opportunities
-
-### Gradle build/configuration caching
-Not yet investigated. `setup-java`'s `cache: gradle` already caches downloaded *dependency* artifacts
-across CI runs, but not Gradle's own *task output* cache - `generateJooq`, `compileJava`, and
-`compileTestJava` (~10s combined of the current `Build and test` step, per `--profile`) re-run from
-scratch on every single CI run regardless of whether their actual inputs changed. Two separate,
-composable levers worth testing empirically before trusting either (per this doc's own lesson about
-verifying rather than assuming):
-
-- **Gradle build cache** (`org.gradle.caching=true` + a persisted cache directory across runs, e.g.
-  via `actions/cache` keyed on a hash of the relevant inputs) - lets a task skip re-execution entirely
-  when its inputs are unchanged from a previous run. `generateJooq` specifically only depends on the
-  migration SQL files, not the whole source tree, so it's plausibly cacheable across most ordinary
-  feature-work commits (which don't touch migrations) even though `compileJava`/`compileTestJava`
-  would still miss on most commits (source changes almost every commit).
-- **Gradle configuration cache** (`org.gradle.configuration-cache=true`) - separate from the build
-  cache, speeds up the *configuration* phase (evaluating `build.gradle` itself) rather than task
-  execution. Gradle's own CLI output already nags about this on every run
-  ("Consider enabling configuration cache...").
-
-Given the small absolute size here (~10s), the honest expectation is a modest win, not a dramatic one
-- but worth doing properly (measured, not assumed) given it's a real interest, not just theoretical.
 
 ### Confirm the fixed Docker layer caching on a second real deploy
 The corrected Dockerfile (see "What worked" above) has only had its first run, which necessarily pays
 the cost of populating the new dependency layer for the first time (81s, no better than baseline yet)
 - same shape as every other cache fix in this doc needing a second run to prove itself. Needs
 confirming on the next real deploy that follows an ordinary code change.
+
+### Confirm Gradle task caching on a real CI run
+Verified thoroughly locally (see "What worked" above), but never actually run in CI yet - the
+assumption that `setup-java`'s `cache: gradle` already persists `~/.gradle/caches/build-cache-1`
+alongside the dependency artifacts it's confirmed to cache is reasonable (same parent directory) but
+unconfirmed. Needs watching on the next real CI run: does `compileTestJava`/`test` show `FROM-CACHE`
+in the log the way it did locally, and does the `Build and test` step's wall time actually drop.
 
 ### Untouched: `dependencyUpdates` step, jacoco report generation
 Both cheap already (~4-6s and ~1.5s respectively per the `--profile` breakdown) - not pursued given
