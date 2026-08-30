@@ -9,6 +9,31 @@ work is this repo's README "Not yet built" section and CLAUDE.md "Open work").
 
 Reverse-chronological - newest first.
 
+## 2026-08-30: Admin stays its own endpoint/`/admin/*` namespace, not folded into resource endpoints
+
+Prompted by finishing the integration-test split (`docs/plans/split-integration-test-by-endpoint.md`)
+and Andy asking whether admin capability should instead live on the relevant resource endpoint (e.g.
+pilot disable/enable as a variant of `PUT /pilot/{id}` rather than its own `PUT
+/admin/pilot/{id}`) - confirmed keeping the current shape rather than folding it in:
+
+- `SessionAuthFilter` gates every admin operation with one uniform check (`path.startsWith("/admin/")`)
+  - folding admin ops into `PilotEndpoint`/etc. would replace that with per-route "if admin, do X"
+    branching inside each handler, which is both easier to get wrong (miss a branch, leave an authz
+    hole) and harder to audit (can't tell what's admin-gated by reading route paths alone).
+- Several pairs that look like "same operation, different permission" aren't: `PUT /pilot/{id}` is a
+  self-service rename (`CreatePilotDto`), `PUT /admin/pilot/{id}` disables/enables
+  (`UpdatePilotAdminDto`) - different request shapes and different domain effects on the same
+  resource, so folding wouldn't even collapse much duplicate code.
+- Matches `CLAUDE.md`'s already-declared Package Layout (six named `endpoint/` classes) and now
+  matches the test split 1:1.
+
+**Watch item, not yet acted on:** `AdminEndpoint.java` (296 lines) and
+`AdminEndpointIntegrationTest` (34 tests) are already the largest of the six endpoint/test pairs -
+the same shape (one class absorbing all of a subsystem's growth) that prompted the original
+integration-test split. Not large enough yet to justify splitting further (e.g. invites vs. pilot
+management as separate concerns), but worth revisiting if it keeps growing rather than letting it
+repeat unnoticed the way the original 1047-line `HobbsApplicationIntegrationTest` did.
+
 ## 2026-08-30: CI made faster - full writeup in `docs/CI_PERFORMANCE.md`
 
 Three changes, only two of which worked as designed the first time:
