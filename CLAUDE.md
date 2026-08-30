@@ -172,15 +172,19 @@ real time would intermittently fail whenever a second ticks over mid-test.
     the pilot picker, there's no "add aircraft" affordance at all - gap-filling for aircraft missing
     from the seed is a deliberately separate, not-yet-built later story (an admin-only
     AeroDataBox-backed single-registration lookup - see the plan doc's Out of scope section).
-  - **Picking or registering a location (departure/arrival place).** Not yet designed, and bigger
-    than the other two: `FlightEntry.departurePlace`/`arrivalPlace` are still plain `String`s today,
-    not an id referencing a real entity - see [`FlightEntry.java`]
-    (src/main/java/com/bonney/hobbs/domain/FlightEntry.java). Needs a domain decision before any UX
-    work: airfields are a finite, known set, so a self-owned `Location`/`Airfield` reference table
-    (seeded from a public ICAO dataset, carrying coordinates) is likely the right call over a live
-    Google Maps dependency - especially since night-time-from-sunset-tables (see FlightTrack →
-    FlightEntry derivation, above) already wants per-airfield coordinates, not a free-text name.
-    Andy to confirm before this becomes a plan doc.
+  - **Picking or registering a location (departure/arrival place).** Now designed - see
+    [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md): a self-owned `Airfield`
+    reference table, seeded/reconciled from OurAirports' GB dataset (~1,200 active airfields), not
+    pilot-submitted - same reference-data pattern as the aircraft picker. Not yet implemented.
+    `FlightEntry.departurePlace`/`arrivalPlace` are still plain `String`s today - see
+    [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java) - migrating them to
+    an `AirfieldId` reference is its own expand/backfill/contract sequence, flagged in the plan doc's
+    open questions rather than decided there. The picker searches by name or ICAO code
+    (`GET /airfield?search=`) with no pre-filled default - deliberately, since William is a guide for
+    what to build first, not a special case the UI hardcodes; no free-text "add an airfield" fallback
+    for now. Once `FlightEntry` references `AirfieldId`, results also rank the calling pilot's own
+    recently-flown airfields first (most recent first, everything else alphabetical after) - a later
+    chunk of the same plan, not buildable until that migration lands.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
