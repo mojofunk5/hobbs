@@ -16,7 +16,7 @@ CI numbers vary run to run, so treat these as representative, not exact.
 | `Build and test` (compile + `:test` + jacoco) | ~52s | ~27-47s | Confirmed, live (varies with how much actually changed) |
 | `:test` task alone | ~54s | ~25s | Confirmed, local |
 | `Build and test` with Gradle task caching warm | ~52s (original) | ~13s | **Confirmed on real CI** - `Cache hit for restore-key`, `compileJava`/`compileTestJava`/`test`/`jacocoTestReport` all `FROM-CACHE` in the actual log |
-| `Build and push image` (Docker) | ~59s | ~71-81s (attempt 1, reverted); dependency layer now confirmed `CACHED`, total step time still noisy | Fixed, but not a clean single "after" number - see below |
+| `Build and push image` (Docker) | ~59s | Layer-caching attempt: 60-119s, no real improvement (see below for why) | Layer caching alone didn't fix it; the actual fix (build the jar outside Docker) not yet confirmed on real CI |
 | Docs-only commit | full pipeline (~130s+ end to end) | `changes` job only (~5s) | Confirmed working, including surviving a real false-positive bug and fix (see below) |
 
 ## What worked
@@ -33,20 +33,34 @@ isolation that makes concurrent execution safe.
 via `@Execution(ExecutionMode.SAME_THREAD)` since it's the one class sharing state (a GreenMail
 server) across its own methods via `@BeforeAll` rather than per-method `@BeforeEach`.
 
-### Genuine Docker layer caching
-See "What didn't work" below for the failed first attempt. The version that actually works: copy only
+### Genuine Docker layer caching for dependency resolution - real, but not the actual bottleneck
+See "What didn't work" below for the failed first attempt. The version that worked: copy only
 `build.gradle`/`settings.gradle`/the Gradle wrapper first, run `./gradlew dependencies` to resolve
 (download) everything into that layer, *then* copy the rest of the source and run the real build.
 Standard package-manager Docker pattern - the same reason a Node image does `COPY package.json`
-before `COPY . .`. The dependency-resolution layer only invalidates when the manifest files
-themselves change, not on every commit.
+before `COPY . .`. Confirmed on a real deploy: the build log shows `CACHED` for that layer.
 
-Confirmed on a real deploy (a commit that changed source but not `build.gradle`): the build log shows
-`CACHED` for that layer, and it skips straight to reusing it rather than re-running
-`./gradlew dependencies`. Not free, though - the `gha` cache backend still has to download the actual
-layer contents (~190MB+ of blobs seen in one run) over the network to restore it, so total deploy time
-still varies commit to commit with how much genuinely needs rebuilding (`shadowJar` itself, and
-`generateJooq`, still always re-run - see the jOOQ entry above and below).
+**This did not fix deploy time staying flat, and Andy correctly called that out** - real numbers
+across three deploys after this landed: 60s, 79s, 119s, against a 59s original baseline. Diagnosed by
+timing each numbered step in the actual `docker/build-push-action` log rather than trusting the
+`CACHED` marker as proof of a win: the dependency layer's own import cost 8.1s (not free - the `gha`
+cache backend still downloads the real layer bytes over the network), but the *real* cost was
+`RUN ./gradlew shadowJar -x test --no-daemon` itself - **30.8s**, completely unaffected by this fix.
+The assumption going in was that dependency download was the dominant cost; it wasn't, and splitting
+it out just made the actual bottleneck (compile + `generateJooq` + fat-jar packaging, all re-running
+from scratch in a fresh, cache-less container on every single deploy) visible as its own number
+instead of fixing it. See "Building the jar outside Docker entirely" below for the actual fix.
+
+### Building the jar outside Docker entirely
+The real fix for the above: build the jar in the `build` job (which already has a warm Gradle build
+cache - see the build-cache entry above) and upload it as an artifact; the `deploy` job's Dockerfile
+now just `COPY`s the pre-built jar into the runtime image, no JDK stage, no Gradle invocation, no
+compilation inside Docker at all. Verified locally before shipping that `shadowJar` itself is
+genuinely cacheable, not just `compileJava` - `./gradlew --build-cache shadowJar -x test` with `build/`
+wiped and no source changes: 17s (cache cold) -> 6s (`shadowJar FROM-CACHE`). Also smoke-tested the
+built jar directly (`java -cp ... HobbsApplication migrate` against a throwaway H2 database) to
+confirm the artifact itself is unaffected by *how* it was built - a real Flyway migration ran
+successfully, same as it always has.
 
 ### Skipping CI for docs-only commits, safely
 Split into an always-running `changes` job feeding a job-level `if:` on `build`. See "What didn't
@@ -171,13 +185,14 @@ honest - worth leaving the wrong guess visible rather than quietly fixing it, pe
 
 ## Open opportunities
 
-### Confirm the Docker layer cache's net effect over more commits
-The dependency-resolution layer is confirmed hitting `CACHED` (see "What worked" above), but total
-`Build and push image` time is still noisy commit to commit (68s one run, 119s the next) since
-`generateJooq` and the actual compile/package step always re-run regardless, and importing a cached
-layer still costs real network transfer time. Worth watching over several more ordinary commits to
-see whether the average genuinely beats the ~59s pre-caching baseline, rather than trusting any single
-number.
+### Confirm building the jar outside Docker actually fixes deploy time
+Verified locally (`shadowJar FROM-CACHE`, and the built jar smoke-tested directly), but not yet run on
+real CI. Watch the next real deploy's `Build and push image` step - should drop to roughly base-image-
+pull-plus-push time (a few seconds) rather than the 60-119s the layer-caching-only version still took,
+since there's no compilation left inside the Docker build at all. If a deploy follows a commit that
+changed main source significantly, expect the `build` job's own `Build and test` step to absorb that
+cost instead (still cache-assisted via compile avoidance where possible) - the total pipeline time
+matters more than any single job's number now that the work moved, not disappeared.
 
 ### Untouched: `dependencyUpdates` step, jacoco report generation
 Both cheap already (~4-6s and ~1.5s respectively per the `--profile` breakdown) - not pursued given

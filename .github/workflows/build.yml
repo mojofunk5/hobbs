@@ -100,8 +100,24 @@ jobs:
           restore-keys: |
             gradle-build-cache-${{ runner.os }}-
 
+      # shadowJar built here too, not just test/jacocoTestReport - deliberately, so the deploy job's
+      # Docker build never has to compile anything at all (see below). This is the actual fix for
+      # deploy time staying flat despite the Gradle/Docker caching work above: `Build and push image`
+      # was never dominated by the dependency-download portion that got cached - the real cost was
+      # generateJooq/compileJava/shadowJar's own packaging step re-running from scratch inside a fresh,
+      # cache-less container on every single deploy (measured at ~31s of a ~60s step). Building the
+      # jar here instead means it benefits from the exact same Gradle build cache just fixed above -
+      # confirmed locally that shadowJar itself is genuinely cacheable (FROM-CACHE), not just
+      # compileJava - so a deploy following a commit that didn't touch main source skips almost all of
+      # this work entirely, not just the download portion.
       - name: Build and test
-        run: ./gradlew test jacocoTestReport
+        run: ./gradlew test jacocoTestReport shadowJar
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-jar
+          path: build/libs/hobbs-0.0.1-SNAPSHOT-all.jar
 
       # Informational only - never fails the build (see build.gradle's dependencyUpdates config for
       # why). Runs on every push, PRs included - a reviewer benefits from seeing what's outdated
@@ -204,6 +220,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      # The jar is already built (see the build job's "Upload jar" step) - the Dockerfile just
+      # packages it now, no Gradle/JDK involved in this job at all. Downloaded into the same
+      # build/libs/ path the build job's own Gradle invocation would have produced it at, matching
+      # what the Dockerfile's COPY expects.
+      - uses: actions/download-artifact@v8
+        with:
+          name: app-jar
+          path: build/libs
 
       # Needed for cache-from/cache-to: type=gha below - that cache backend requires the
       # docker-container Buildx driver, not the default docker driver build-push-action falls back
