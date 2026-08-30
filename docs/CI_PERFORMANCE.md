@@ -16,7 +16,7 @@ CI numbers vary run to run, so treat these as representative, not exact.
 | `Build and test` (compile + `:test` + jacoco) | ~52s | ~27-47s | Confirmed, live (varies with how much actually changed) |
 | `:test` task alone | ~54s | ~25s | Confirmed, local |
 | `Build and test` with Gradle task caching warm | ~52s (original) | ~13s | **Confirmed on real CI** - `Cache hit for restore-key`, `compileJava`/`compileTestJava`/`test`/`jacocoTestReport` all `FROM-CACHE` in the actual log |
-| `Build and push image` (Docker) | ~59s | Layer-caching attempt: 60-119s, no real improvement (see below for why) | Layer caching alone didn't fix it; the actual fix (build the jar outside Docker) not yet confirmed on real CI |
+| `Build and push image` (Docker) | ~59s | **~5s** | **Confirmed on real CI** - a real deploy, real numbers, `Build and test` 14s + `Build and push image` 5s (layer-caching alone got 60-119s, no real improvement - see below for the full story) |
 | Docs-only commit | full pipeline (~130s+ end to end) | `changes` job only (~5s) | Confirmed working, including surviving a real false-positive bug and fix (see below) |
 
 ## What worked
@@ -72,6 +72,11 @@ correctly) was - this specific failure mode only exists in the download-artifact
 path interaction, which has no local equivalent to test against. Fixed by downloading the jar to the
 repo root instead of `build/libs/` - simpler than fighting `.dockerignore`'s gitignore-style
 negation-pattern semantics to carve out an exception.
+
+**Confirmed on the next real deploy after that correction**: `Build and push image` dropped to
+**~5s**, down from the ~59s original baseline (and the 60-119s the layer-caching-only attempt still
+took). `Build and test` (now including `shadowJar`) came in at 14s. This is the single biggest
+confirmed win in this whole document - a real deploy, real numbers, not a local measurement.
 
 ### Skipping CI for docs-only commits, safely
 Split into an always-running `changes` job feeding a job-level `if:` on `build`. See "What didn't
@@ -196,14 +201,6 @@ honest - worth leaving the wrong guess visible rather than quietly fixing it, pe
 
 ## Open opportunities
 
-### Confirm building the jar outside Docker actually fixes deploy time
-Verified locally (`shadowJar FROM-CACHE`, and the built jar smoke-tested directly), but not yet run on
-real CI. Watch the next real deploy's `Build and push image` step - should drop to roughly base-image-
-pull-plus-push time (a few seconds) rather than the 60-119s the layer-caching-only version still took,
-since there's no compilation left inside the Docker build at all. If a deploy follows a commit that
-changed main source significantly, expect the `build` job's own `Build and test` step to absorb that
-cost instead (still cache-assisted via compile avoidance where possible) - the total pipeline time
-matters more than any single job's number now that the work moved, not disappeared.
 
 ### Untouched: `dependencyUpdates` step, jacoco report generation
 Both cheap already (~4-6s and ~1.5s respectively per the `--profile` breakdown) - not pursued given
