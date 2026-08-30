@@ -220,3 +220,31 @@ matching `hobbs-ui` release (`feature/airfield-picker-6-ui`, a sibling PR in tha
 sends the new required fields and no longer sends the old ones, so migration and code move together -
 the same assumption the deploy pipeline's `migrate` -> `docker compose up -d app` sequencing already
 makes for every other migration in this repo, not a new exception invented for this one.
+
+## 2026-08-30: Aircraft/pilot/airfield picker search performance - revisiting the deferred index question
+
+Andy reported the pickers (aircraft/pilot/airfield, all built on the same typeahead pattern in
+`hobbs-ui`) feel "clunky" and "half the time don't look like they are doing anything." Investigated
+both halves of that separately, since they're independent causes with independent fixes:
+
+- **Backend query speed:** confirmed the exact gap the 2026-08-30 "Aircraft picker" entry above
+  flagged as a revisit trigger. `pilot.name` has no index at all; `aircraft`/`airfield` have plain
+  btree indexes on the searched columns, which (as that entry already predicted) don't speed up an
+  arbitrary-substring `LIKE '%x%'` match - only a prefix match. At `pilot`/`airfield`'s real scale
+  (a handful of rows today, ~1,200 once airfields are imported) this genuinely doesn't matter - even
+  a full table scan is fast. At `aircraft`'s real scale (~600k rows, the full OpenSky import already
+  ran), it's the actual bottleneck: this is the "revisit if/when observed to be slow" trigger that
+  entry left open, so `V14__aircraft_search_trigram_indexes.java` adds Postgres `pg_trgm` GIN
+  indexes on `lower(registration)`/`lower(make)`/`lower(model)` (matching the exact expression
+  `AircraftRepository`'s queries filter on - see that migration's own Javadoc for why a plain-column
+  index wouldn't get used). Deliberately scoped to aircraft only, not pilot/airfield too - indexing a
+  table that's already fast wouldn't fix anything a user could perceive, and would just be
+  unexplained complexity sitting next to two tables where it does nothing.
+- **Perceived responsiveness:** independent of query speed, the picker widgets themselves have a
+  window with no visual feedback at all - the debounce timer runs for 300ms after every keystroke
+  before a search even starts, and only then does the "searching" spinner appear. That's a UI-only
+  fix, tracked as its own PR in `hobbs-ui`, not part of this backend change.
+
+These are shipped as two separate PRs (one per repo) rather than bundled, since they're independent
+root causes with independent, unrelated fixes - a slow query and a missing loading indicator don't
+belong in the same reviewable change just because a user experienced them as one symptom.
