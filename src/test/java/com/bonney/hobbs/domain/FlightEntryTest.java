@@ -41,8 +41,9 @@ class FlightEntryTest {
     @Test
     void negativeTotalMinutesAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> new FlightEntry(FlightEntryId.random(),
-                PilotId.random(), AircraftId.random(), null, LocalDate.now(), "EGCM", OffsetDateTime.now(),
-                "EGCM", OffsetDateTime.now(), null, null, PilotId.random(), null, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
+                PilotId.random(), AircraftId.random(), null, LocalDate.now(), OffsetDateTime.now(),
+                OffsetDateTime.now(), AirfieldId.random(), AirfieldId.random(), PilotId.random(), null,
+                0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
     }
 
     @Test
@@ -61,31 +62,20 @@ class FlightEntryTest {
     }
 
     @Test
-    void departureAndArrivalAirfieldIdAreEmptyWhenNotSet() {
-        // Expand-only step of the departurePlace/arrivalPlace -> AirfieldId migration (see
-        // docs/plans/airfield-picker.md) - existing entries never had these populated, so both
-        // fields must be treated as optional at the domain level.
-        FlightEntry entry = anEntry(FlightEntryId.random(), null);
-
-        assertThat(entry.getDepartureAirfieldId(), is(Optional.empty()));
-        assertThat(entry.getArrivalAirfieldId(), is(Optional.empty()));
-    }
-
-    @Test
-    void departureAndArrivalAirfieldIdArePresentWhenSet() {
+    void departureAndArrivalAirfieldIdAreTheOnesGiven() {
         AirfieldId departureAirfieldId = AirfieldId.random();
         AirfieldId arrivalAirfieldId = AirfieldId.random();
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), PilotId.random(), AircraftId.random(), null,
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), departureAirfieldId,
+                LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), departureAirfieldId,
                 arrivalAirfieldId, PilotId.random(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
 
-        assertThat(entry.getDepartureAirfieldId(), is(Optional.of(departureAirfieldId)));
-        assertThat(entry.getArrivalAirfieldId(), is(Optional.of(arrivalAirfieldId)));
+        assertThat(entry.getDepartureAirfieldId(), is(departureAirfieldId));
+        assertThat(entry.getArrivalAirfieldId(), is(arrivalAirfieldId));
     }
 
     private FlightEntry anEntry(FlightEntryId id, FlightTrackId flightTrackId) {
         return new FlightEntry(id, PilotId.random(), AircraftId.random(), flightTrackId, LocalDate.now(),
-                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null, PilotId.random(), null,
-                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(), AirfieldId.random(),
+                PilotId.random(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 }

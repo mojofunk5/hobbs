@@ -189,3 +189,34 @@ only, deliberately stopping there:
 Chunk 5 (recent-airfields ranking on `GET /airfield?search=`) builds on these new nullable columns
 directly - it only ever reads flight entries that do have an id set (new entries going forward),
 which is consistent with "recently flown" naturally excluding entries with no id yet.
+
+## 2026-08-30: Airfield picker chunk 6 - contract step done after all, supersedes the "no contract scheduled" call above
+
+The chunk 4 entry above (and `docs/plans/airfield-picker.md`'s Open questions) deliberately left no
+contract step scheduled, because there was no safe way to backfill `departureAirfieldId`/
+`arrivalAirfieldId` onto existing `FlightEntry` rows that only ever had free-text `departurePlace`/
+`arrivalPlace` - dropping the free-text columns, or making the id columns `NOT NULL`, would have
+stranded those rows with no id and no way to derive one.
+
+That reasoning no longer applies, and the plan is superseded rather than followed: **zero real
+`FlightEntry` rows exist in production** - confirmed directly by Andy - the app is live
+(`hobbs.bssd.co.uk`) but nobody has logged a real flight through it yet. With no real data to lose or
+migrate, Andy explicitly decided (2026-08-30, in conversation, not a doc PR - the decision itself is
+the record) to skip the staged expand/backfill/contract sequence and go straight to the contract now,
+rather than carry the dual-field state indefinitely waiting for a hypothetical future backfill that
+was never going to be possible anyway.
+
+Implemented in `V13__flight_entry_airfield_id_contract.sql`: `departure_airfield_id`/
+`arrival_airfield_id` become `NOT NULL`, `departure_place`/`arrival_place` are dropped entirely.
+`FlightEntry`, `FlightEntryRepository`, `CreateFlightEntryDto`/`FlightEntryDto`/`FlightEntryMapper`,
+and `FlightEntryEndpoint` all now require `departureAirfieldId`/`arrivalAirfieldId` - the free-text
+fields and all handling for their absence are gone, not just deprecated.
+
+This is not a blanket exemption from CLAUDE.md's migration-safety rule ("a migration must never break
+the code currently running against it") - see the migration file's own comment for the residual risk
+this still carries (a partially-failed deploy leaving pre-this-PR code running against the new
+schema) and why it's an accepted risk here specifically: this migration ships in lockstep with a
+matching `hobbs-ui` release (`feature/airfield-picker-6-ui`, a sibling PR in that repo) that already
+sends the new required fields and no longer sends the old ones, so migration and code move together -
+the same assumption the deploy pipeline's `migrate` -> `docker compose up -d app` sequencing already
+makes for every other migration in this repo, not a new exception invented for this one.

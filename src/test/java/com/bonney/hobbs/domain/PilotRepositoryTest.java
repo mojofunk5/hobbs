@@ -187,9 +187,10 @@ class PilotRepositoryTest {
         return repository.findKnownTo(callerId, search).stream().map(Pilot::getName).toList();
     }
 
-    private FlightEntry flightEntry(PilotId ownerId, PilotId pilotInCommandId, PilotId coPilotId, AircraftId aircraftId) {
+    private FlightEntry flightEntry(PilotId ownerId, PilotId pilotInCommandId, PilotId coPilotId, AircraftId aircraftId,
+                                     AirfieldId airfieldId) {
         return new FlightEntry(FlightEntryId.random(), ownerId, aircraftId, null, LocalDate.now(),
-                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null, pilotInCommandId, coPilotId,
+                OffsetDateTime.now(), OffsetDateTime.now(), airfieldId, airfieldId, pilotInCommandId, coPilotId,
                 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 
@@ -222,8 +223,11 @@ class PilotRepositoryTest {
         Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE,
                 null, null, null, null, null, null, null, null);
         new AircraftRepository(dsl).save(aircraft);
+        Airfield airfield = new Airfield(AirfieldId.random(), "EGCM", "Manchester Barton Airport", "Manchester",
+                "GB", "GB-ENG", 53.4694, -2.3803, 79, "small_airport", "ourairports", UUID.randomUUID().toString());
+        new AirfieldRepository(dsl).save(airfield);
         new FlightEntryRepository(dsl).save(
-                flightEntry(william.getId(), instructor.getId(), coPilot.getId(), aircraft.getId()));
+                flightEntry(william.getId(), instructor.getId(), coPilot.getId(), aircraft.getId(), airfield.getId()));
 
         assertThat(knownToNames(william.getId(), null),
                 containsInAnyOrder("William", "Instructor Smith", "Amy Co-Pilot"));
@@ -259,9 +263,12 @@ class PilotRepositoryTest {
         Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE,
                 null, null, null, null, null, null, null, null);
         new AircraftRepository(dsl).save(aircraft);
+        Airfield airfield = new Airfield(AirfieldId.random(), "EGCM", "Manchester Barton Airport", "Manchester",
+                "GB", "GB-ENG", 53.4694, -2.3803, 79, "small_airport", "ourairports", UUID.randomUUID().toString());
+        new AirfieldRepository(dsl).save(airfield);
         FlightEntryRepository flightEntryRepository = new FlightEntryRepository(dsl);
-        flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId()));
-        flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId()));
+        flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId(), airfield.getId()));
+        flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId(), airfield.getId()));
 
         assertThat(knownToNames(william.getId(), null), containsInAnyOrder("William", "Instructor Smith"));
     }

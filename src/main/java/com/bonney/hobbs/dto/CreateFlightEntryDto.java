@@ -10,19 +10,17 @@ import java.util.UUID;
  * Same field shape as FlightEntryDto minus the server-generated id. Used both for a fully
  * hand-filled entry and for the draft a GPS-recorded FlightTrack pre-fills - flightTrackId is
  * optional either way (see FlightEntry's Javadoc: GPS recording is a fast-path onto this same
- * form, never a requirement). departureAirfieldId/arrivalAirfieldId are also optional - see
- * FlightEntry's Javadoc on the ongoing departurePlace/arrivalPlace -> AirfieldId migration
- * (docs/plans/airfield-picker.md); departurePlace/arrivalPlace are still required until that
- * migration's contract step.
+ * form, never a requirement). departureAirfieldId/arrivalAirfieldId are required (referencing the
+ * self-owned airfield reference table - see docs/plans/airfield-picker.md), same UUID-typed,
+ * unvalidated-for-null treatment as aircraftId already gets on this class - no free-text
+ * departurePlace/arrivalPlace fallback exists any more.
  */
 public class CreateFlightEntryDto {
 
     private final UUID aircraftId;
     private final UUID flightTrackId;
     private final LocalDate date;
-    private final String departurePlace;
     private final OffsetDateTime departureTime;
-    private final String arrivalPlace;
     private final OffsetDateTime arrivalTime;
     private final UUID departureAirfieldId;
     private final UUID arrivalAirfieldId;
@@ -45,9 +43,7 @@ public class CreateFlightEntryDto {
     public CreateFlightEntryDto(@JsonProperty("aircraftId") UUID aircraftId,
                                  @JsonProperty("flightTrackId") UUID flightTrackId,
                                  @JsonProperty("date") LocalDate date,
-                                 @JsonProperty("departurePlace") String departurePlace,
                                  @JsonProperty("departureTime") OffsetDateTime departureTime,
-                                 @JsonProperty("arrivalPlace") String arrivalPlace,
                                  @JsonProperty("arrivalTime") OffsetDateTime arrivalTime,
                                  @JsonProperty("departureAirfieldId") UUID departureAirfieldId,
                                  @JsonProperty("arrivalAirfieldId") UUID arrivalAirfieldId,
@@ -69,9 +65,7 @@ public class CreateFlightEntryDto {
         this.aircraftId = aircraftId;
         this.flightTrackId = flightTrackId;
         this.date = date;
-        this.departurePlace = departurePlace;
         this.departureTime = departureTime;
-        this.arrivalPlace = arrivalPlace;
         this.arrivalTime = arrivalTime;
         this.departureAirfieldId = departureAirfieldId;
         this.arrivalAirfieldId = arrivalAirfieldId;
@@ -104,16 +98,8 @@ public class CreateFlightEntryDto {
         return date;
     }
 
-    public String getDeparturePlace() {
-        return departurePlace;
-    }
-
     public OffsetDateTime getDepartureTime() {
         return departureTime;
-    }
-
-    public String getArrivalPlace() {
-        return arrivalPlace;
     }
 
     public OffsetDateTime getArrivalTime() {

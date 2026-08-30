@@ -133,11 +133,16 @@ abstract class AbstractIntegrationTest {
 
     CreateFlightEntryDto aFlightEntry(HobbsClient client, UUID aircraftId, UUID flightTrackId) {
         UUID pilotInCommandId = client.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        // departureAirfieldId/arrivalAirfieldId are required (NOT NULL REFERENCES airfield(id) since
+        // the chunk 6 contract), so a real Airfield row needs to exist to reference - same
+        // "seed the FK's referenced row first" pattern as seedAircraft/seedAirfield above.
+        UUID airfieldId = seedAirfield("EGCM", "Manchester Barton Airport");
         LocalDate date = LocalDate.of(2026, 8, 24);
         OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
-        return new CreateFlightEntryDto(aircraftId, flightTrackId, date, "EGCM", departureTime, "EGCM",
-                arrivalTime, null, null, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
+        return new CreateFlightEntryDto(aircraftId, flightTrackId, date, departureTime,
+                arrivalTime, airfieldId, airfieldId, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0,
+                "Circuits");
     }
 
     String extractResetCode(String email) {
