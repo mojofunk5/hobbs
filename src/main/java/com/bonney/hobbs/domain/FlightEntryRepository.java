@@ -28,12 +28,10 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.AIRCRAFT_ID, entry.getAircraftId().value())
                 .set(FLIGHT_ENTRY.FLIGHT_TRACK_ID, entry.getFlightTrackId().map(FlightTrackId::value).orElse(null))
                 .set(FLIGHT_ENTRY.DATE, entry.getDate())
-                .set(FLIGHT_ENTRY.DEPARTURE_PLACE, entry.getDeparturePlace())
                 .set(FLIGHT_ENTRY.DEPARTURE_TIME, entry.getDepartureTime())
-                .set(FLIGHT_ENTRY.ARRIVAL_PLACE, entry.getArrivalPlace())
                 .set(FLIGHT_ENTRY.ARRIVAL_TIME, entry.getArrivalTime())
-                .set(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, entry.getDepartureAirfieldId().map(AirfieldId::value).orElse(null))
-                .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().map(AirfieldId::value).orElse(null))
+                .set(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, entry.getDepartureAirfieldId().value())
+                .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().value())
                 .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
                 .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
@@ -53,12 +51,10 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.AIRCRAFT_ID, entry.getAircraftId().value())
                 .set(FLIGHT_ENTRY.FLIGHT_TRACK_ID, entry.getFlightTrackId().map(FlightTrackId::value).orElse(null))
                 .set(FLIGHT_ENTRY.DATE, entry.getDate())
-                .set(FLIGHT_ENTRY.DEPARTURE_PLACE, entry.getDeparturePlace())
                 .set(FLIGHT_ENTRY.DEPARTURE_TIME, entry.getDepartureTime())
-                .set(FLIGHT_ENTRY.ARRIVAL_PLACE, entry.getArrivalPlace())
                 .set(FLIGHT_ENTRY.ARRIVAL_TIME, entry.getArrivalTime())
-                .set(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, entry.getDepartureAirfieldId().map(AirfieldId::value).orElse(null))
-                .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().map(AirfieldId::value).orElse(null))
+                .set(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, entry.getDepartureAirfieldId().value())
+                .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().value())
                 .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
                 .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
@@ -100,8 +96,7 @@ public class FlightEntryRepository {
      * ordering as {@link #findAllByPilotId}) and collects both departure_airfield_id and
      * arrival_airfield_id from each, deduplicating so a pilot who's flown the same airfield
      * repeatedly in a row doesn't crowd out everywhere else they've been - counts *distinct*
-     * airfields, not flights. Entries with no airfield id set (every entry before the chunk 4
-     * migration landed, since there is no backfill) simply contribute nothing here.
+     * airfields, not flights.
      */
     public List<AirfieldId> findRecentAirfieldIds(PilotId pilotId, int limit) {
         Result<Record2<UUID, UUID>> records = dsl
@@ -135,12 +130,10 @@ public class FlightEntryRepository {
                 AircraftId.from(record.getAircraftId()),
                 record.getFlightTrackId() == null ? null : FlightTrackId.from(record.getFlightTrackId()),
                 record.getDate(),
-                record.getDeparturePlace(),
                 record.getDepartureTime(),
-                record.getArrivalPlace(),
                 record.getArrivalTime(),
-                record.getDepartureAirfieldId() == null ? null : AirfieldId.from(record.getDepartureAirfieldId()),
-                record.getArrivalAirfieldId() == null ? null : AirfieldId.from(record.getArrivalAirfieldId()),
+                AirfieldId.from(record.getDepartureAirfieldId()),
+                AirfieldId.from(record.getArrivalAirfieldId()),
                 PilotId.from(record.getPilotInCommandId()),
                 record.getCoPilotId() == null ? null : PilotId.from(record.getCoPilotId()),
                 record.getSingleEngineMinutes(),

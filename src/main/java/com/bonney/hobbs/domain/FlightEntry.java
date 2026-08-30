@@ -13,6 +13,13 @@ import java.util.Optional;
  * One row of the CAA/EASA standard logbook (CAP804 / FCL.050 template). All durations are stored
  * in whole minutes rather than a float number of hours, to avoid rounding drift accumulating across
  * hundreds of entries - convert to "H:MM" only at the presentation edge.
+ * <p>
+ * Departure/arrival location is a required {@link AirfieldId} referencing the self-owned
+ * {@code airfield} reference table (see docs/plans/airfield-picker.md) - never free text. Earlier
+ * revisions of this class carried nullable {@code departureAirfieldId}/{@code arrivalAirfieldId}
+ * fields alongside required free-text {@code departurePlace}/{@code arrivalPlace} strings, during
+ * the picker's expand step; the free-text fields are gone and the id fields are now required, per
+ * the contract step recorded in docs/DECISIONS.md's 2026-08-30 "contract" entry.
  */
 public class FlightEntry {
 
@@ -21,9 +28,7 @@ public class FlightEntry {
     private final AircraftId aircraftId;
     private final FlightTrackId flightTrackId;
     private final LocalDate date;
-    private final String departurePlace;
     private final OffsetDateTime departureTime;
-    private final String arrivalPlace;
     private final OffsetDateTime arrivalTime;
     private final AirfieldId departureAirfieldId;
     private final AirfieldId arrivalAirfieldId;
@@ -44,9 +49,8 @@ public class FlightEntry {
     private final String remarks;
 
     public FlightEntry(FlightEntryId id, PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
-                        LocalDate date, String departurePlace, OffsetDateTime departureTime,
-                        String arrivalPlace, OffsetDateTime arrivalTime, AirfieldId departureAirfieldId,
-                        AirfieldId arrivalAirfieldId, PilotId pilotInCommandId,
+                        LocalDate date, OffsetDateTime departureTime, OffsetDateTime arrivalTime,
+                        AirfieldId departureAirfieldId, AirfieldId arrivalAirfieldId, PilotId pilotInCommandId,
                         PilotId coPilotId, int singleEngineMinutes, int multiEngineMinutes, int totalMinutes,
                         int nightMinutes, int ifrMinutes, int crossCountryMinutes,
                         int pilotInCommandMinutes, int coPilotMinutes, int dualMinutes, int instructorMinutes,
@@ -55,13 +59,6 @@ public class FlightEntry {
         // this same entry, never a requirement. A manually-entered flight has no track at all, and a
         // recording that cut out partway through still produces a valid entry with whatever the
         // track could pre-fill left as-is or corrected by hand.
-        //
-        // departureAirfieldId/arrivalAirfieldId are also deliberately nullable, for a different
-        // reason: this is the expand step of a departurePlace/arrivalPlace (String) ->
-        // AirfieldId migration (see docs/plans/airfield-picker.md's Open questions and
-        // docs/DECISIONS.md's 2026-08-30 entry) - existing rows only ever populated the free-text
-        // columns and have no id to backfill from (no reliable string-matching), and there is no
-        // contract step yet removing the free-text fields, so both representations coexist for now.
         if (totalMinutes < 0) {
             throw new IllegalArgumentException("totalMinutes cannot be negative");
         }
@@ -70,9 +67,7 @@ public class FlightEntry {
         this.aircraftId = aircraftId;
         this.flightTrackId = flightTrackId;
         this.date = date;
-        this.departurePlace = departurePlace;
         this.departureTime = departureTime;
-        this.arrivalPlace = arrivalPlace;
         this.arrivalTime = arrivalTime;
         this.departureAirfieldId = departureAirfieldId;
         this.arrivalAirfieldId = arrivalAirfieldId;
@@ -113,28 +108,20 @@ public class FlightEntry {
         return date;
     }
 
-    public String getDeparturePlace() {
-        return departurePlace;
-    }
-
     public OffsetDateTime getDepartureTime() {
         return departureTime;
-    }
-
-    public String getArrivalPlace() {
-        return arrivalPlace;
     }
 
     public OffsetDateTime getArrivalTime() {
         return arrivalTime;
     }
 
-    public Optional<AirfieldId> getDepartureAirfieldId() {
-        return Optional.ofNullable(departureAirfieldId);
+    public AirfieldId getDepartureAirfieldId() {
+        return departureAirfieldId;
     }
 
-    public Optional<AirfieldId> getArrivalAirfieldId() {
-        return Optional.ofNullable(arrivalAirfieldId);
+    public AirfieldId getArrivalAirfieldId() {
+        return arrivalAirfieldId;
     }
 
     public PilotId getPilotInCommandId() {

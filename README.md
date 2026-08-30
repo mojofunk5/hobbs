@@ -36,6 +36,17 @@ as `migrate`, and re-runnable/idempotent (upserts by registration, never deletes
 java -jar build/libs/hobbs-0.0.1-SNAPSHOT-all.jar import-aircraft /path/to/aircraftDatabase.csv
 ```
 
+### Seeding airfield reference data
+
+`Airfield` is reference data too (see the model summary below), imported/reconciled from an
+already-downloaded copy of [OurAirports' airports.csv](https://davidmegginson.github.io/ourairports-data/airports.csv)
+(filtered to the GB subset on import) rather than pulled live - same "explicit, deliberate step"
+reasoning as `import-aircraft`, and re-runnable/idempotent (upserts by source id, never deletes):
+
+```bash
+java -jar build/libs/hobbs-0.0.1-SNAPSHOT-all.jar import-airfields /path/to/airports.csv
+```
+
 ### Running via Docker Compose
 
 ```bash
@@ -57,7 +68,7 @@ Brings up Postgres and the app only, at `http://localhost:8080`. The frontend is
 ./gradlew test jacocoTestReport
 ```
 
-313 tests, 93% instruction / 84% branch coverage: full coverage of the auth/session/referral-code/
+367 tests, 93% instruction / 82% branch coverage: full coverage of the auth/session/referral-code/
 admin/password-reset subsystem (unit tests plus end-to-end integration tests, one class per endpoint
 - `HealthEndpointIntegrationTest`, `AircraftEndpointIntegrationTest`, `FlightEntryEndpointIntegrationTest`,
 `PilotEndpointIntegrationTest`, `AuthEndpointIntegrationTest`, `AdminEndpointIntegrationTest` - sharing
@@ -110,12 +121,19 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   category description). Shared across pilots, not scoped to one account.
   `GET /aircraft?search=` (required, minimum 2 characters, capped at 50 results) backs both the
   flight-entry aircraft picker and the Browse Aircraft page in `hobbs-ui`.
-- **FlightEntry** - one row of the logbook: date, departure/arrival (place + time),
-  `pilotInCommandId`/`coPilotId` (both `PilotId`s - see `docs/GLOSSARY.md`'s **PIC** entry for how
-  the PIC can differ from the entry's owner), and every duration (single/multi-engine, total, night,
-  IFR, cross-country, PIC, co-pilot, dual, instructor) plus day/night landings and remarks. All
-  durations are stored in whole minutes, not float hours, to avoid rounding drift across hundreds of
-  entries. `flightTrackId` and `coPilotId` are nullable and optional - see below.
+- **FlightEntry** - one row of the logbook: date, departure/arrival (each an `AirfieldId` + time -
+  see **Airfield** below; no free-text place field), `pilotInCommandId`/`coPilotId` (both `PilotId`s -
+  see `docs/GLOSSARY.md`'s **PIC** entry for how the PIC can differ from the entry's owner), and
+  every duration (single/multi-engine, total, night, IFR, cross-country, PIC, co-pilot, dual,
+  instructor) plus day/night landings and remarks. All durations are stored in whole minutes, not
+  float hours, to avoid rounding drift across hundreds of entries. `flightTrackId` and `coPilotId`
+  are nullable and optional - see below.
+- **Airfield** - reference data seeded from OurAirports' GB dataset
+  ([`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md)), not pilot-submitted - there is
+  no `POST /airfield`. name/ICAO code/municipality/country/region/coordinates/elevation/type, shared
+  across pilots. `GET /airfield?search=` (name substring or ICAO code prefix; empty search returns
+  the full GB set alphabetically, no minimum-length restriction) backs the flight-entry departure/
+  arrival picker, ranked with the calling pilot's own recently-flown airfields first.
 - **FlightTrack** - a raw GPS recording (points stored as a single JSON blob for now, not one row per
   point - see the class Javadoc for why). Feeds a *draft* `FlightEntry` that the pilot confirms or
   corrects; never writes a `FlightEntry` on its own.
@@ -133,12 +151,13 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   for a co-pilot yet
 - Merging two `Pilot` records (e.g. someone who registered their own account instead of using an
   invite that would've attached them to an unclaimed record someone else already created)
-- Pasted-in ids when adding a flight entry - `PilotId`/`AircraftId`/place are entered as raw text
-  for now (see [`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)). Split into three
-  stories in `CLAUDE.md`'s Open work: picking a pilot you've flown with (backend done, see
-  [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md); `hobbs-ui` picker not yet built),
-  picking/registering an aircraft, and picking/registering a location - the latter two not yet
-  designed
+- Pasted-in ids when adding a flight entry - `PilotId`/`AircraftId`/`AirfieldId` were entered as raw
+  text originally (see [`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)). Split into
+  three stories in `CLAUDE.md`'s Open work, backend now done for all three - see
+  [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md),
+  [`docs/plans/aircraft-picker.md`](docs/plans/aircraft-picker.md), and
+  [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md) - `hobbs-ui`'s picker widgets are
+  the remaining piece for each
 - Editing or deleting a flight entry - only creating, viewing, and listing are planned for now
 - Logbook entry screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) - see that repo's `docs/architecture-brief.md`

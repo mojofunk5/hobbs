@@ -14,9 +14,7 @@ public class FlightEntryDto {
     private final UUID aircraftId;
     private final UUID flightTrackId;
     private final LocalDate date;
-    private final String departurePlace;
     private final OffsetDateTime departureTime;
-    private final String arrivalPlace;
     private final OffsetDateTime arrivalTime;
     private final UUID departureAirfieldId;
     private final UUID arrivalAirfieldId;
@@ -38,9 +36,7 @@ public class FlightEntryDto {
 
     public FlightEntryDto(@JsonProperty("id") UUID id, @JsonProperty("aircraftId") UUID aircraftId,
                            @JsonProperty("flightTrackId") UUID flightTrackId, @JsonProperty("date") LocalDate date,
-                           @JsonProperty("departurePlace") String departurePlace,
                            @JsonProperty("departureTime") OffsetDateTime departureTime,
-                           @JsonProperty("arrivalPlace") String arrivalPlace,
                            @JsonProperty("arrivalTime") OffsetDateTime arrivalTime,
                            @JsonProperty("departureAirfieldId") UUID departureAirfieldId,
                            @JsonProperty("arrivalAirfieldId") UUID arrivalAirfieldId,
@@ -63,9 +59,7 @@ public class FlightEntryDto {
         this.aircraftId = aircraftId;
         this.flightTrackId = flightTrackId;
         this.date = date;
-        this.departurePlace = departurePlace;
         this.departureTime = departureTime;
-        this.arrivalPlace = arrivalPlace;
         this.arrivalTime = arrivalTime;
         this.departureAirfieldId = departureAirfieldId;
         this.arrivalAirfieldId = arrivalAirfieldId;
@@ -102,16 +96,8 @@ public class FlightEntryDto {
         return date;
     }
 
-    public String getDeparturePlace() {
-        return departurePlace;
-    }
-
     public OffsetDateTime getDepartureTime() {
         return departureTime;
-    }
-
-    public String getArrivalPlace() {
-        return arrivalPlace;
     }
 
     public OffsetDateTime getArrivalTime() {

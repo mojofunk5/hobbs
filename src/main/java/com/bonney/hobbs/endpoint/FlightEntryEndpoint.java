@@ -40,8 +40,9 @@ public class FlightEntryEndpoint {
         description = "Creates a new logbook entry for the authenticated pilot. flightTrackId is optional - "
                 + "GPS recording is a fast-path onto this same form, never a requirement; a manually-entered "
                 + "flight is just as valid as one derived from a recorded track. departureAirfieldId/"
-                + "arrivalAirfieldId are also optional (see docs/plans/airfield-picker.md) - departurePlace/"
-                + "arrivalPlace free text is still required until that migration's contract step.",
+                + "arrivalAirfieldId are required, referencing the self-owned airfield reference table (see "
+                + "docs/plans/airfield-picker.md) - there is no free-text departurePlace/arrivalPlace fallback "
+                + "any more.",
         tags = {"FlightEntry"},
         requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateFlightEntryDto.class)),
         responses = {
@@ -56,12 +57,10 @@ public class FlightEntryEndpoint {
                 AircraftId.from(request.getAircraftId()),
                 request.getFlightTrackId() == null ? null : FlightTrackId.from(request.getFlightTrackId()),
                 request.getDate(),
-                request.getDeparturePlace(),
                 request.getDepartureTime(),
-                request.getArrivalPlace(),
                 request.getArrivalTime(),
-                request.getDepartureAirfieldId() == null ? null : AirfieldId.from(request.getDepartureAirfieldId()),
-                request.getArrivalAirfieldId() == null ? null : AirfieldId.from(request.getArrivalAirfieldId()),
+                AirfieldId.from(request.getDepartureAirfieldId()),
+                AirfieldId.from(request.getArrivalAirfieldId()),
                 PilotId.from(request.getPilotInCommandId()),
                 request.getCoPilotId() == null ? null : PilotId.from(request.getCoPilotId()),
                 request.getSingleEngineMinutes(),

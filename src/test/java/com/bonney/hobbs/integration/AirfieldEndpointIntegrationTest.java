@@ -87,8 +87,8 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID zulu = seedAirfield("EGZZ", "Zulu Airfield");
         UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
-        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24), "EGZZ",
-                OffsetDateTime.parse("2026-08-24T10:00:00Z"), "EGZZ", OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
                 zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         List<UUID> ids = pilot.searchAirfields().stream().map(AirfieldDto::getId).toList();
@@ -103,8 +103,8 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID zulu = seedAirfield("EGZZ", "Zulu Sherburn Airfield");
         UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
-        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24), "EGZZ",
-                OffsetDateTime.parse("2026-08-24T10:00:00Z"), "EGZZ", OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
                 zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         List<UUID> ids = pilot.searchAirfields("sherburn").stream().map(AirfieldDto::getId).toList();
@@ -120,8 +120,8 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID zulu = seedAirfield("EGZZ", "Zulu Airfield");
         UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
         UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
-        first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24), "EGZZ",
-                OffsetDateTime.parse("2026-08-24T10:00:00Z"), "EGZZ", OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+        first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
                 zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         // second never flew anywhere, so their results stay plain alphabetical.

@@ -43,15 +43,15 @@ public class Logbook {
     }
 
     public FlightEntry createEntry(PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
-                                    LocalDate date, String departurePlace, OffsetDateTime departureTime,
-                                    String arrivalPlace, OffsetDateTime arrivalTime, AirfieldId departureAirfieldId,
-                                    AirfieldId arrivalAirfieldId, PilotId pilotInCommandId,
-                                    PilotId coPilotId, int singleEngineMinutes, int multiEngineMinutes,
-                                    int totalMinutes, int nightMinutes, int ifrMinutes, int crossCountryMinutes,
-                                    int pilotInCommandMinutes, int coPilotMinutes, int dualMinutes,
-                                    int instructorMinutes, int dayLandings, int nightLandings, String remarks) {
+                                    LocalDate date, OffsetDateTime departureTime, OffsetDateTime arrivalTime,
+                                    AirfieldId departureAirfieldId, AirfieldId arrivalAirfieldId,
+                                    PilotId pilotInCommandId, PilotId coPilotId, int singleEngineMinutes,
+                                    int multiEngineMinutes, int totalMinutes, int nightMinutes, int ifrMinutes,
+                                    int crossCountryMinutes, int pilotInCommandMinutes, int coPilotMinutes,
+                                    int dualMinutes, int instructorMinutes, int dayLandings, int nightLandings,
+                                    String remarks) {
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, flightTrackId, date,
-                departurePlace, departureTime, arrivalPlace, arrivalTime, departureAirfieldId, arrivalAirfieldId,
+                departureTime, arrivalTime, departureAirfieldId, arrivalAirfieldId,
                 pilotInCommandId, coPilotId, singleEngineMinutes, multiEngineMinutes, totalMinutes, nightMinutes,
                 ifrMinutes, crossCountryMinutes, pilotInCommandMinutes, coPilotMinutes, dualMinutes,
                 instructorMinutes, dayLandings, nightLandings, remarks);

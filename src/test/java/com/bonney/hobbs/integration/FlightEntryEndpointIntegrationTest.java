@@ -11,6 +11,7 @@ import java.util.UUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
@@ -22,7 +23,7 @@ class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
 
         FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
 
-        assertThat(created.getDeparturePlace(), is("EGCM"));
+        assertThat(created.getDepartureAirfieldId(), is(notNullValue()));
         assertThat(created.getTotalMinutes(), is(45));
         assertThat(created.getFlightTrackId(), is((UUID) null));
 

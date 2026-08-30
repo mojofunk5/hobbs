@@ -47,9 +47,9 @@ class LogbookTest {
         OffsetDateTime departureTime = OffsetDateTime.now();
         OffsetDateTime arrivalTime = departureTime.plusMinutes(45);
 
-        FlightEntry entry = logbook.createEntry(pilotId, aircraftId, null, date, "EGCM", departureTime,
-                "EGCM", arrivalTime, null, null, PilotId.random(), null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0,
-                "Circuits");
+        FlightEntry entry = logbook.createEntry(pilotId, aircraftId, null, date, departureTime,
+                arrivalTime, AirfieldId.random(), AirfieldId.random(), PilotId.random(), null, 45, 0, 45, 0, 0, 0,
+                0, 0, 45, 0, 3, 0, "Circuits");
 
         assertThat(entry.getPilotId(), is(pilotId));
         assertThat(entry.getAircraftId(), is(aircraftId));
@@ -66,23 +66,23 @@ class LogbookTest {
         FlightTrackId trackId = FlightTrackId.random();
 
         FlightEntry entry = logbook.createEntry(PilotId.random(), AircraftId.random(), trackId,
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null,
-                PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
+                LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(),
+                AirfieldId.random(), PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
 
         assertThat(entry.getFlightTrackId(), is(Optional.of(trackId)));
     }
 
     @Test
-    void createEntryCarriesOptionalDepartureAndArrivalAirfieldIds() {
+    void createEntryCarriesTheGivenDepartureAndArrivalAirfieldIds() {
         AirfieldId departureAirfieldId = AirfieldId.random();
         AirfieldId arrivalAirfieldId = AirfieldId.random();
 
         FlightEntry entry = logbook.createEntry(PilotId.random(), AircraftId.random(), null,
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), departureAirfieldId,
+                LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), departureAirfieldId,
                 arrivalAirfieldId, PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
 
-        assertThat(entry.getDepartureAirfieldId(), is(Optional.of(departureAirfieldId)));
-        assertThat(entry.getArrivalAirfieldId(), is(Optional.of(arrivalAirfieldId)));
+        assertThat(entry.getDepartureAirfieldId(), is(departureAirfieldId));
+        assertThat(entry.getArrivalAirfieldId(), is(arrivalAirfieldId));
     }
 
     @Test
@@ -204,7 +204,7 @@ class LogbookTest {
 
     private FlightEntry aFlightEntry(FlightEntryId id) {
         return new FlightEntry(id, PilotId.random(), AircraftId.random(), null, LocalDate.now(),
-                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null, PilotId.random(), null,
-                45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 1, 0, null);
+                OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(), AirfieldId.random(),
+                PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 1, 0, null);
     }
 }

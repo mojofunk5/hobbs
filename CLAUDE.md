@@ -175,26 +175,27 @@ real time would intermittently fail whenever a second ticks over mid-test.
   - **Picking or registering a location (departure/arrival place).** See
     [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md): a self-owned `Airfield`
     reference table, seeded/reconciled from OurAirports' GB dataset (~1,200 active airfields), not
-    pilot-submitted - same reference-data pattern as the aircraft picker. Chunks 1-5 implemented
-    (backend, on feature branches, not yet merged): the `airfield` table + `AirfieldRepository`, the
+    pilot-submitted - same reference-data pattern as the aircraft picker. Backend done, chunks 1-6
+    (on this feature branch, not yet merged): the `airfield` table + `AirfieldRepository`, the
     re-runnable `import-airfields` CLI subcommand (`AirfieldImportJob`), `GET /airfield?search=`
     (name substring or ICAO code prefix, empty search returns the full GB set alphabetically - no
     minimum-length restriction, unlike aircraft's 2-char minimum, since ~1,200 rows is small enough),
-    the expand step of `FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId`: nullable
-    `departureAirfieldId`/`arrivalAirfieldId` fields alongside the still-required free-text fields
-    (see [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java)), and
-    recent-airfields ranking - `GET /airfield?search=` now puts the calling pilot's own last 5
-    distinct flown airfields first (most recent first, deduped via
+    recent-airfields ranking - `GET /airfield?search=` puts the calling pilot's own last 5 distinct
+    flown airfields first (most recent first, deduped via
     `FlightEntryRepository#findRecentAirfieldIds`), everything else alphabetical after, using the
-    same session/auth pattern as `GET /pilot?search=` to get the caller's `PilotId`. **Existing
-    `FlightEntry` rows will never get `departureAirfieldId`/`arrivalAirfieldId` backfilled** -
-    there's no reliable way to match old free-text place strings to a specific `Airfield` without
-    unreliable fuzzy matching - and **no contract step (dropping the free-text columns) is
-    scheduled**; see `docs/DECISIONS.md`'s 2026-08-30 entries for the full reasoning. The picker
-    searches by name or ICAO code with no pre-filled default - deliberately, since William is a
-    guide for what to build first, not a special case the UI hardcodes; no free-text "add an
-    airfield" fallback for now. `hobbs-ui`'s picker widget (chunk 6 of the plan) is a separate repo,
-    not yet built.
+    same session/auth pattern as `GET /pilot?search=` to get the caller's `PilotId` - and, as of
+    chunk 6, the completed `departurePlace`/`arrivalPlace` -> `AirfieldId` **contract**:
+    `departureAirfieldId`/`arrivalAirfieldId` are now required on `FlightEntry`, and the legacy
+    free-text `departurePlace`/`arrivalPlace` fields are gone entirely (dropped from the schema, the
+    domain, and both DTOs). The plan doc and the chunk-4 `docs/DECISIONS.md` entry originally left no
+    contract step scheduled (no safe way to backfill existing rows) - superseded once it was
+    confirmed no real `FlightEntry` rows exist in production yet, so there was nothing to backfill;
+    see `docs/DECISIONS.md`'s 2026-08-30 "chunk 6" entry for the full record of that override. The
+    picker searches by name or ICAO code with no pre-filled default - deliberately, since William is
+    a guide for what to build first, not a special case the UI hardcodes; no free-text "add an
+    airfield" fallback for now. `hobbs-ui`'s picker widget (chunk 6 of the plan, ships in lockstep
+    with this backend contract) is a separate repo, done on a feature branch there too, not yet
+    merged.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
