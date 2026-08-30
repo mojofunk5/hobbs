@@ -3,6 +3,7 @@ package com.bonney.hobbs.domain;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -22,9 +23,21 @@ import static com.bonney.hobbs.jooq.Tables.FAILED_ATTEMPT;
 public class FailedAttemptRepository {
 
     private final DSLContext dsl;
+    private final Clock clock;
 
     public FailedAttemptRepository(DSLContext dsl) {
+        this(dsl, Clock.systemUTC());
+    }
+
+    // Clock is injectable so tests can fix "now" instead of racing the real wall clock - same
+    // reasoning as RateLimitRepository's own Clock: without this, a test asserting "the Nth+1
+    // attempt in the same window is still throttled" is intrinsically flaky, failing whenever the
+    // window rolls over between recording the Nth failure and checking the (N+1)th - rare with a
+    // 15-minute window (unlike RateLimitRepository's one-second window) but not impossible, since
+    // the window boundary is epoch-aligned rather than relative to when the test itself started.
+    public FailedAttemptRepository(DSLContext dsl, Clock clock) {
         this.dsl = dsl;
+        this.clock = clock;
     }
 
     // Read-only, called before doing any password/code verification so an already-throttled caller
@@ -64,7 +77,7 @@ public class FailedAttemptRepository {
     // nothing live ever gets swept.
     public void deleteStale() {
         dsl.deleteFrom(FAILED_ATTEMPT)
-                .where(FAILED_ATTEMPT.WINDOW_START.lt(OffsetDateTime.now().minusHours(1)))
+                .where(FAILED_ATTEMPT.WINDOW_START.lt(OffsetDateTime.now(clock).minusHours(1)))
                 .execute();
     }
 
@@ -72,9 +85,9 @@ public class FailedAttemptRepository {
     // on the current window's identity without either needing to read the other's prior state first
     // - the same trick RateLimitRepository uses via truncatedTo(SECONDS), generalized to an
     // arbitrary duration via epoch-second bucketing.
-    private static OffsetDateTime currentWindowStart(Duration window) {
+    private OffsetDateTime currentWindowStart(Duration window) {
         long windowSeconds = window.getSeconds();
-        long nowEpoch = OffsetDateTime.now().toEpochSecond();
+        long nowEpoch = OffsetDateTime.now(clock).toEpochSecond();
         long bucketEpoch = (nowEpoch / windowSeconds) * windowSeconds;
         return OffsetDateTime.ofInstant(Instant.ofEpochSecond(bucketEpoch), ZoneOffset.UTC);
     }

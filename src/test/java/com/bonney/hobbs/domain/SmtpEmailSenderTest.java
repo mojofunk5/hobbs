@@ -7,12 +7,18 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+// Opted out of the suite-wide concurrent default (see src/test/resources/junit-platform.properties)
+// - this class's @Test methods share one GreenMail SMTP server via static fields set in @BeforeAll,
+// unlike every other test class's per-method @BeforeEach fixtures, so its methods aren't independent.
+@Execution(ExecutionMode.SAME_THREAD)
 class SmtpEmailSenderTest {
 
     private static GreenMail greenMail;
