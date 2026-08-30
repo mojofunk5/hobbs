@@ -36,6 +36,7 @@ import com.bonney.hobbs.domain.Sessions;
 import com.bonney.hobbs.domain.SmtpEmailSender;
 import com.bonney.hobbs.endpoint.AdminEndpoint;
 import com.bonney.hobbs.endpoint.AircraftEndpoint;
+import com.bonney.hobbs.endpoint.AirfieldEndpoint;
 import com.bonney.hobbs.endpoint.AuthEndpoint;
 import com.bonney.hobbs.endpoint.FlightEntryEndpoint;
 import com.bonney.hobbs.endpoint.HealthEndpoint;
@@ -126,11 +127,13 @@ public class HobbsApplication {
                 failedAttemptRepository, config.passwordResetThrottleMaxAttempts(),
                 Duration.ofMinutes(config.passwordResetThrottleWindowMinutes()));
 
-        Logbook logbook = new Logbook(new FlightEntryRepository(dsl), new AircraftRepository(dsl));
+        Logbook logbook = new Logbook(new FlightEntryRepository(dsl), new AircraftRepository(dsl),
+                new AirfieldRepository(dsl));
 
         HealthEndpoint healthEndpoint = new HealthEndpoint();
         FlightEntryEndpoint flightEntryEndpoint = new FlightEntryEndpoint(logbook);
         AircraftEndpoint aircraftEndpoint = new AircraftEndpoint(logbook);
+        AirfieldEndpoint airfieldEndpoint = new AirfieldEndpoint(logbook);
         PilotEndpoint pilotEndpoint = new PilotEndpoint(pilots, accounts, adminRepository, referralCodeRepository,
                 emailSender, config.frontendBaseUrl(), config.referralCodeTtlHours());
         AuthEndpoint authEndpoint = new AuthEndpoint(auth, adminRepository, passwordReset);
@@ -185,6 +188,7 @@ public class HobbsApplication {
             healthEndpoint.registerRoutes(javalinConfig);
             flightEntryEndpoint.registerRoutes(javalinConfig);
             aircraftEndpoint.registerRoutes(javalinConfig);
+            airfieldEndpoint.registerRoutes(javalinConfig);
             pilotEndpoint.registerRoutes(javalinConfig);
             authEndpoint.registerRoutes(javalinConfig);
             adminEndpoint.registerRoutes(javalinConfig);

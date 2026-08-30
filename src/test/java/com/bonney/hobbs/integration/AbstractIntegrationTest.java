@@ -6,6 +6,9 @@ import com.bonney.hobbs.client.HobbsClient;
 import com.bonney.hobbs.domain.Aircraft;
 import com.bonney.hobbs.domain.AircraftId;
 import com.bonney.hobbs.domain.AircraftRepository;
+import com.bonney.hobbs.domain.Airfield;
+import com.bonney.hobbs.domain.AirfieldId;
+import com.bonney.hobbs.domain.AirfieldRepository;
 import com.bonney.hobbs.domain.EngineCategory;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
@@ -85,6 +88,19 @@ abstract class AbstractIntegrationTest {
         AircraftId id = AircraftId.random();
         new AircraftRepository(dsl).save(new Aircraft(id, registration, make, model, EngineCategory.SINGLE_ENGINE,
                 null, null, null, null, null, null, null, null));
+        return id.value();
+    }
+
+    /**
+     * Airfield is reference data, not pilot-submitted (see docs/plans/airfield-picker.md) - there's
+     * no POST /airfield for tests to create one through, so this seeds directly against the
+     * fixture's own database instead, same pattern as {@link #seedAircraft}.
+     */
+    UUID seedAirfield(String icaoCode, String name) {
+        DSLContext dsl = DSL.using(dbUrl, "sa", "");
+        AirfieldId id = AirfieldId.random();
+        new AirfieldRepository(dsl).save(new Airfield(id, icaoCode, name, "Somewhere", "GB", "GB-ENG",
+                53.0, -1.0, 100, "small_airport", "ourairports", UUID.randomUUID().toString()));
         return id.value();
     }
 

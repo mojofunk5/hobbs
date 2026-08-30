@@ -1,6 +1,7 @@
 package com.bonney.hobbs.client;
 
 import com.bonney.hobbs.dto.AircraftDto;
+import com.bonney.hobbs.dto.AirfieldDto;
 import com.bonney.hobbs.dto.ClaimInviteRequestDto;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreatePilotDto;
@@ -128,6 +129,12 @@ public interface HobbsClient {
 
     @RequestLine("GET /aircraft?search={search}&registrationOnly={registrationOnly}")
     List<AircraftDto> searchAircraft(@Param("search") String search, @Param("registrationOnly") boolean registrationOnly);
+
+    @RequestLine("GET /airfield")
+    List<AirfieldDto> searchAirfields();
+
+    @RequestLine("GET /airfield?search={search}")
+    List<AirfieldDto> searchAirfields(@Param("search") String search);
 
     @RequestLine("POST /flight")
     FlightEntryDto createFlightEntry(CreateFlightEntryDto request);
