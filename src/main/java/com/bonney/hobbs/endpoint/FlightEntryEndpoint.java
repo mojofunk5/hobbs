@@ -2,6 +2,7 @@ package com.bonney.hobbs.endpoint;
 
 import com.bonney.hobbs.SessionAuthFilter;
 import com.bonney.hobbs.domain.AircraftId;
+import com.bonney.hobbs.domain.AirfieldId;
 import com.bonney.hobbs.domain.FlightEntry;
 import com.bonney.hobbs.domain.FlightEntryId;
 import com.bonney.hobbs.domain.FlightTrackId;
@@ -38,7 +39,9 @@ public class FlightEntryEndpoint {
         summary = "Create a flight entry",
         description = "Creates a new logbook entry for the authenticated pilot. flightTrackId is optional - "
                 + "GPS recording is a fast-path onto this same form, never a requirement; a manually-entered "
-                + "flight is just as valid as one derived from a recorded track.",
+                + "flight is just as valid as one derived from a recorded track. departureAirfieldId/"
+                + "arrivalAirfieldId are also optional (see docs/plans/airfield-picker.md) - departurePlace/"
+                + "arrivalPlace free text is still required until that migration's contract step.",
         tags = {"FlightEntry"},
         requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateFlightEntryDto.class)),
         responses = {
@@ -57,6 +60,8 @@ public class FlightEntryEndpoint {
                 request.getDepartureTime(),
                 request.getArrivalPlace(),
                 request.getArrivalTime(),
+                request.getDepartureAirfieldId() == null ? null : AirfieldId.from(request.getDepartureAirfieldId()),
+                request.getArrivalAirfieldId() == null ? null : AirfieldId.from(request.getArrivalAirfieldId()),
                 PilotId.from(request.getPilotInCommandId()),
                 request.getCoPilotId() == null ? null : PilotId.from(request.getCoPilotId()),
                 request.getSingleEngineMinutes(),

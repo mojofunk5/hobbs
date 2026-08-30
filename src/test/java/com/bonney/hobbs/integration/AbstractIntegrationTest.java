@@ -137,7 +137,7 @@ abstract class AbstractIntegrationTest {
         OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
         return new CreateFlightEntryDto(aircraftId, flightTrackId, date, "EGCM", departureTime, "EGCM",
-                arrivalTime, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
+                arrivalTime, null, null, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
     }
 
     String extractResetCode(String email) {

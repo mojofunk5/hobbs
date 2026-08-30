@@ -156,3 +156,36 @@ to whack-a-mole one crash per production attempt. Found two more real issues, fi
 
 Full real-CSV import (520,000 rows, 3,473 skipped for no registration) now completes cleanly with
 V7-V10 all applied.
+
+## 2026-08-30: Airfield picker chunk 4 - expand-only, no backfill, no contract yet
+
+[`docs/plans/airfield-picker.md`](plans/airfield-picker.md)'s Open questions flagged the
+`FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId` migration as needing "its own
+expand/backfill/contract sequence" and left scoping it to implementation. Implemented as expand
+only, deliberately stopping there:
+
+- **Expand (V12__flight_entry_airfield_id_expand.sql):** added nullable
+  `departure_airfield_id`/`arrival_airfield_id` UUID columns referencing `airfield(id)`, alongside
+  the existing `departure_place`/`arrival_place` free-text columns - those are untouched. `FlightEntry`,
+  `FlightEntryRepository`, `CreateFlightEntryDto`/`FlightEntryDto`/`FlightEntryMapper`, and
+  `FlightEntryEndpoint` all now accept/expose optional `departureAirfieldId`/`arrivalAirfieldId`
+  alongside the still-required free-text fields.
+- **No backfill, and none planned.** There is no reliable way to match an existing row's free-text
+  place string (e.g. `"EGCM"`, `"Sherburn"`) to a specific `airfield.name`/`icao_code` without
+  fuzzy string-matching, which the plan doc's own reasoning (and the standing "reference by id, not
+  text" convention) explicitly argues against. Existing rows simply keep both
+  new id columns `NULL` indefinitely - this is a deliberate, permanent state for pre-migration rows,
+  not a TODO to revisit with a smarter matching algorithm later. Consistent with CLAUDE.md's
+  migration-safety rule: the *previous* release's code (which only ever wrote the free-text columns)
+  keeps producing correct rows against this new schema, since the new columns are nullable and never
+  required.
+- **No contract step**, and none scheduled. Dropping `departure_place`/`arrival_place` (or making
+  the id columns `NOT NULL`) is itself a breaking schema/API change - every existing `FlightEntry`
+  row lacking an id would need a real answer (either an admin backfill exercise, or accepting some
+  rows permanently keep only free-text) before that could safely happen. Tracked as a follow-up in
+  CLAUDE.md's Open work, not designed or scheduled here - a future decision, not an oversight in this
+  chunk.
+
+Chunk 5 (recent-airfields ranking on `GET /airfield?search=`) builds on these new nullable columns
+directly - it only ever reads flight entries that do have an id set (new entries going forward),
+which is consistent with "recently flown" naturally excluding entries with no id yet.

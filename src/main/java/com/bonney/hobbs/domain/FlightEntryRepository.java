@@ -27,6 +27,8 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.DEPARTURE_TIME, entry.getDepartureTime())
                 .set(FLIGHT_ENTRY.ARRIVAL_PLACE, entry.getArrivalPlace())
                 .set(FLIGHT_ENTRY.ARRIVAL_TIME, entry.getArrivalTime())
+                .set(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, entry.getDepartureAirfieldId().map(AirfieldId::value).orElse(null))
+                .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().map(AirfieldId::value).orElse(null))
                 .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
                 .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
@@ -50,6 +52,8 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.DEPARTURE_TIME, entry.getDepartureTime())
                 .set(FLIGHT_ENTRY.ARRIVAL_PLACE, entry.getArrivalPlace())
                 .set(FLIGHT_ENTRY.ARRIVAL_TIME, entry.getArrivalTime())
+                .set(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, entry.getDepartureAirfieldId().map(AirfieldId::value).orElse(null))
+                .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().map(AirfieldId::value).orElse(null))
                 .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
                 .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
@@ -95,6 +99,8 @@ public class FlightEntryRepository {
                 record.getDepartureTime(),
                 record.getArrivalPlace(),
                 record.getArrivalTime(),
+                record.getDepartureAirfieldId() == null ? null : AirfieldId.from(record.getDepartureAirfieldId()),
+                record.getArrivalAirfieldId() == null ? null : AirfieldId.from(record.getArrivalAirfieldId()),
                 PilotId.from(record.getPilotInCommandId()),
                 record.getCoPilotId() == null ? null : PilotId.from(record.getCoPilotId()),
                 record.getSingleEngineMinutes(),

@@ -189,7 +189,7 @@ class PilotRepositoryTest {
 
     private FlightEntry flightEntry(PilotId ownerId, PilotId pilotInCommandId, PilotId coPilotId, AircraftId aircraftId) {
         return new FlightEntry(FlightEntryId.random(), ownerId, aircraftId, null, LocalDate.now(),
-                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), pilotInCommandId, coPilotId,
+                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null, pilotInCommandId, coPilotId,
                 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 

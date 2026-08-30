@@ -25,6 +25,7 @@ class FlightEntryRepositoryTest {
     private PilotId pilotId;
     private PilotId instructorPilotId;
     private AircraftId aircraftId;
+    private AirfieldId airfieldId;
 
     @BeforeEach
     void setUp() {
@@ -51,6 +52,11 @@ class FlightEntryRepositoryTest {
                 null, null, null, null, null, null, null, null);
         new AircraftRepository(dsl).save(aircraft);
         aircraftId = aircraft.getId();
+
+        Airfield airfield = new Airfield(AirfieldId.random(), "EGCM", "Manchester Barton Airport", "Manchester",
+                "GB", "GB-ENG", 53.4694, -2.3803, 79, "small_airport", "ourairports", "1");
+        new AirfieldRepository(dsl).save(airfield);
+        airfieldId = airfield.getId();
     }
 
     @Test
@@ -59,7 +65,7 @@ class FlightEntryRepositoryTest {
         OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date,
-                "EGCM", departureTime, "EGCM", arrivalTime, instructorPilotId, null,
+                "EGCM", departureTime, "EGCM", arrivalTime, null, null, instructorPilotId, null,
                 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
 
         repository.save(entry);
@@ -74,6 +80,8 @@ class FlightEntryRepositoryTest {
         assertThat(found.getDayLandings(), is(3));
         assertThat(found.getRemarks(), is("Circuits"));
         assertThat(found.getFlightTrackId(), is(Optional.empty()));
+        assertThat(found.getDepartureAirfieldId(), is(Optional.empty()));
+        assertThat(found.getArrivalAirfieldId(), is(Optional.empty()));
     }
 
     @Test
@@ -87,12 +95,28 @@ class FlightEntryRepositoryTest {
         new FlightTrackRepository(dsl).save(track);
 
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, track.getId(),
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), pilotId, null,
-                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null, pilotId,
+                null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(entry);
 
         FlightEntry found = repository.findById(entry.getId()).orElseThrow();
         assertThat(found.getFlightTrackId(), is(Optional.of(track.getId())));
+    }
+
+    @Test
+    void departureAndArrivalAirfieldIdRoundTripWhenSet() {
+        // Expand step of the departurePlace/arrivalPlace -> AirfieldId migration (see
+        // docs/plans/airfield-picker.md) - a newly-created entry can reference a real Airfield row
+        // even though existing rows never will (no backfill).
+        FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, LocalDate.now(),
+                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), airfieldId, airfieldId, pilotId, null,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+
+        repository.save(entry);
+
+        FlightEntry found = repository.findById(entry.getId()).orElseThrow();
+        assertThat(found.getDepartureAirfieldId(), is(Optional.of(airfieldId)));
+        assertThat(found.getArrivalAirfieldId(), is(Optional.of(airfieldId)));
     }
 
     @Test
@@ -116,8 +140,8 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(otherPilot);
         repository.save(anEntry(LocalDate.now(), "2026-08-24T10:00:00Z", "2026-08-24T10:30:00Z"));
         FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
-                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), otherPilot.getId(),
-                null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), null, null,
+                otherPilot.getId(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(othersEntry);
 
         List<FlightEntry> found = repository.findAllByPilotId(otherPilot.getId());
@@ -127,7 +151,7 @@ class FlightEntryRepositoryTest {
 
     private FlightEntry anEntry(LocalDate date, String departureTime, String arrivalTime) {
         return new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date, "EGCM",
-                OffsetDateTime.parse(departureTime), "EGCM", OffsetDateTime.parse(arrivalTime), pilotId, null,
-                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                OffsetDateTime.parse(departureTime), "EGCM", OffsetDateTime.parse(arrivalTime), null, null, pilotId,
+                null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 }
