@@ -11,29 +11,43 @@ jobs:
   # Always runs (no trigger-level path filter) - deliberately, so this workflow always reports a
   # status. A trigger-level paths-ignore looked equivalent but isn't: if the whole workflow never
   # triggers, no check ever gets posted for this commit, which - on a repo with a required status
-  # check (see hobbs-ui's branch protection) - leaves that required check stuck "waiting to be
-  # reported" forever and blocks merging. A *job* that's conditionally skipped via `if:`, by
-  # contrast, still reports a "skipped" status, which GitHub counts as passing for a required check.
-  # This repo has no required checks today (see CLAUDE.md's Working Practices), but using the same
-  # job-conditional pattern as hobbs-ui rather than the trigger-level one keeps both repos consistent
-  # and this one safe if branch protection is ever added here too.
+  # check (this repo has one, same as hobbs-ui - see CLAUDE.md's Working Practices and
+  # docs/CI_PERFORMANCE.md) - leaves that required check stuck "waiting to be reported" forever and
+  # blocks merging. A *job* that's conditionally skipped via `if:`, by contrast, still reports a
+  # "skipped" status, which GitHub counts as passing for a required check.
   changes:
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ steps.filter.outputs.docs_only }}
+      docs_only: ${{ steps.check.outputs.docs_only }}
     steps:
       - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          # every, not the default some - only skip when ALL changed files are docs. A commit that
-          # touches CLAUDE.md/README.md alongside real code (our "keep docs in sync" practice) must
-          # still run the full build.
-          predicate-quantifier: every
-          filters: |
-            docs_only:
-              - '**/*.md'
-              - 'docs/**'
+          fetch-depth: 0
+      # Hand-rolled rather than dorny/paths-filter's predicate-quantifier: every, after that option
+      # turned out not to mean what it looked like it meant - it checks "does every declared PATTERN
+      # have at least one matching file", not "does every changed FILE match a pattern". A single doc
+      # file satisfies both '**/*.md' and 'docs/**' on its own, so a commit changing
+      # gradle.properties (real config) alongside one doc file got wrongly classified docs-only and
+      # had its build silently skipped - confirmed via a real merge, see docs/CI_PERFORMANCE.md. This
+      # loop checks every changed file individually against the docs patterns instead, verified
+      # locally across docs-only/mixed/code-only/nested-docs-path/false-positive-filename cases
+      # before shipping.
+      - id: check
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE" 2>/dev/null; then
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          docs_only=true
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              *.md|docs/*) ;;
+              *) docs_only=false ;;
+            esac
+          done < <(git diff --name-only "$BASE" "${{ github.sha }}")
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
 
   build:
     needs: changes
