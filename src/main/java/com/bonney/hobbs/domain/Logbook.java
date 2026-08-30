@@ -23,10 +23,13 @@ public class Logbook {
 
     private final FlightEntryRepository flightEntryRepository;
     private final AircraftRepository aircraftRepository;
+    private final AirfieldRepository airfieldRepository;
 
-    public Logbook(FlightEntryRepository flightEntryRepository, AircraftRepository aircraftRepository) {
+    public Logbook(FlightEntryRepository flightEntryRepository, AircraftRepository aircraftRepository,
+                    AirfieldRepository airfieldRepository) {
         this.flightEntryRepository = flightEntryRepository;
         this.aircraftRepository = aircraftRepository;
+        this.airfieldRepository = airfieldRepository;
     }
 
     public FlightEntry createEntry(PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
@@ -60,5 +63,17 @@ public class Logbook {
         return registrationOnly
                 ? aircraftRepository.searchByRegistration(search, MAX_AIRCRAFT_SEARCH_RESULTS)
                 : aircraftRepository.search(search, MAX_AIRCRAFT_SEARCH_RESULTS);
+    }
+
+    /**
+     * Backs GET /airfield?search= - unlike {@link #searchAircraft}, an empty/missing search is
+     * valid and returns the full GB set (alphabetical by name): ~1,200 rows is small enough that
+     * this doesn't need aircraft's "must type 2+ characters" restriction (see
+     * docs/plans/airfield-picker.md's Confirmed decisions).
+     */
+    public List<Airfield> searchAirfields(String search) {
+        return search == null || search.isBlank()
+                ? airfieldRepository.findAll()
+                : airfieldRepository.search(search);
     }
 }

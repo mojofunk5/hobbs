@@ -29,11 +29,14 @@ class LogbookTest {
     @Mock
     AircraftRepository aircraftRepository;
 
+    @Mock
+    AirfieldRepository airfieldRepository;
+
     Logbook logbook;
 
     @BeforeEach
     void setUp() {
-        logbook = new Logbook(flightEntryRepository, aircraftRepository);
+        logbook = new Logbook(flightEntryRepository, aircraftRepository, airfieldRepository);
     }
 
     @Test
@@ -120,6 +123,31 @@ class LogbookTest {
     @Test
     void searchAircraftRejectsANullSearch() {
         assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft(null, false));
+    }
+
+    @Test
+    void searchAirfieldsDelegatesToTheRepositorySearchWhenSearchIsGiven() {
+        List<Airfield> expected = List.of(anAirfield());
+        when(airfieldRepository.search("sherburn")).thenReturn(expected);
+
+        List<Airfield> result = logbook.searchAirfields("sherburn");
+
+        assertThat(result, is(expected));
+    }
+
+    @Test
+    void searchAirfieldsReturnsFindAllWhenSearchIsNullOrBlank() {
+        List<Airfield> expected = List.of(anAirfield());
+        when(airfieldRepository.findAll()).thenReturn(expected);
+
+        assertThat(logbook.searchAirfields(null), is(expected));
+        assertThat(logbook.searchAirfields(""), is(expected));
+        assertThat(logbook.searchAirfields("   "), is(expected));
+    }
+
+    private Airfield anAirfield() {
+        return new Airfield(AirfieldId.random(), "EGCJ", "Sherburn-in-Elmet Airfield", "Sherburn-in-Elmet", "GB",
+                "GB-ENG", 53.7883, -1.2225, 26, "small_airport", "ourairports", "12345");
     }
 
     private FlightEntry aFlightEntry(FlightEntryId id) {

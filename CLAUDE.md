@@ -172,19 +172,23 @@ real time would intermittently fail whenever a second ticks over mid-test.
     the pilot picker, there's no "add aircraft" affordance at all - gap-filling for aircraft missing
     from the seed is a deliberately separate, not-yet-built later story (an admin-only
     AeroDataBox-backed single-registration lookup - see the plan doc's Out of scope section).
-  - **Picking or registering a location (departure/arrival place).** Now designed - see
+  - **Picking or registering a location (departure/arrival place).** See
     [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md): a self-owned `Airfield`
     reference table, seeded/reconciled from OurAirports' GB dataset (~1,200 active airfields), not
-    pilot-submitted - same reference-data pattern as the aircraft picker. Not yet implemented.
-    `FlightEntry.departurePlace`/`arrivalPlace` are still plain `String`s today - see
-    [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java) - migrating them to
-    an `AirfieldId` reference is its own expand/backfill/contract sequence, flagged in the plan doc's
-    open questions rather than decided there. The picker searches by name or ICAO code
-    (`GET /airfield?search=`) with no pre-filled default - deliberately, since William is a guide for
-    what to build first, not a special case the UI hardcodes; no free-text "add an airfield" fallback
-    for now. Once `FlightEntry` references `AirfieldId`, results also rank the calling pilot's own
-    recently-flown airfields first (most recent first, everything else alphabetical after) - a later
-    chunk of the same plan, not buildable until that migration lands.
+    pilot-submitted - same reference-data pattern as the aircraft picker. Chunks 1-3 implemented
+    (backend, on feature branches, not yet merged): the `airfield` table + `AirfieldRepository`, the
+    re-runnable `import-airfields` CLI subcommand (`AirfieldImportJob`), and
+    `GET /airfield?search=` (name substring or ICAO code prefix, empty search returns the full GB
+    set alphabetically - no minimum-length restriction, unlike aircraft's 2-char minimum, since
+    ~1,200 rows is small enough). `FlightEntry.departurePlace`/`arrivalPlace` are still plain
+    `String`s - see [`FlightEntry.java`](src/main/java/com/bonney/hobbs/domain/FlightEntry.java).
+    Chunk 4 (migrating them to nullable `departureAirfieldId`/`arrivalAirfieldId` `AirfieldId`
+    references, expand-only - no backfill, no contract yet) and chunk 5 (recent-airfields ranking on
+    the search endpoint) are next; see `docs/DECISIONS.md`'s 2026-08-30 airfield-picker entries for
+    what's deliberately left undone. The picker searches by name or ICAO code with no pre-filled
+    default - deliberately, since William is a guide for what to build first, not a special case the
+    UI hardcodes; no free-text "add an airfield" fallback for now. `hobbs-ui`'s picker widget (chunk
+    6 of the plan) is a separate repo, not yet built.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
 - **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
