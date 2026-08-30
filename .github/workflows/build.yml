@@ -32,9 +32,26 @@ jobs:
       # loop checks every changed file individually against the docs patterns instead, verified
       # locally across docs-only/mixed/code-only/nested-docs-path/false-positive-filename cases
       # before shipping.
+      #
+      # BASE differs by branch: on master, github.event.before (the previous master commit) is
+      # correct - master only moves by sequential merges. On any other branch it's wrong once that
+      # branch merges master back into itself (a normal thing to do to stay current) - the diff
+      # against github.event.before then includes everything master changed in the meantime, not
+      # just this branch's own changes. Confirmed the hard way on hobbs-ui: a docs-only PR merged
+      # master in, picking up an unrelated CI workflow change from master along the way, and got
+      # wrongly classified as NOT docs-only as a result - a full unnecessary build ran even though the
+      # PR's own content never touched anything but docs. The opposite direction of mistake from the
+      # original bug (that one wrongly skipped a real build; this one wrongly ran an unnecessary one),
+      # but the same root cause: comparing against the wrong base commit. Using the merge-base with
+      # master instead answers "what has this branch actually changed relative to where it diverged",
+      # which survives a merge-master-in commit correctly.
       - id: check
         run: |
-          BASE="${{ github.event.before }}"
+          if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+            BASE="${{ github.event.before }}"
+          else
+            BASE=$(git merge-base origin/master HEAD 2>/dev/null || true)
+          fi
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE" 2>/dev/null; then
             echo "docs_only=false" >> "$GITHUB_OUTPUT"
             exit 0

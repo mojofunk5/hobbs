@@ -125,6 +125,24 @@ correctly ran or correctly skipped. Fixed by replacing the action with a plain s
 (docs-only, the exact mixed-file bug scenario, code-only, a nested `docs/` path, and a filename that
 merely contains "docs" without being under the `docs/` directory) before shipping the fix.
 
+### The fix above's own `BASE` was wrong for PR branches that merge master back in
+The hand-rolled replacement compared each commit against `github.event.before` - correct for `master`
+(sequential merges only) but wrong for a feature branch once it merges `master` back into itself, a
+normal thing to do to stay current. That merge commit's diff against `github.event.before` (the
+branch's own previous tip) necessarily includes everything `master` changed in the meantime, not just
+the branch's own content. Confirmed on `hobbs-ui`: a genuinely docs-only PR
+([hobbs-ui#21](https://github.com/mojofunk5/hobbs-ui/pull/21)) merged `master` in, incidentally
+picking up an unrelated CI workflow change, and got wrongly classified as *not* docs-only as a result
+- a full unnecessary build ran for a PR that only ever touched documentation. The opposite direction
+of mistake from the `paths-filter` bug above (that one wrongly skipped a real build; this one wrongly
+ran an unnecessary one), but the identical root cause: comparing against the wrong base commit.
+Diagnosed by walking the merge commit's own parents (`git log --graph`, `git show --no-patch --format
+"%H %P"`) to find exactly which commit's diff was actually being computed, rather than guessing.
+Fixed by branching on `github.ref`: `github.event.before` only for pushes to `master`, `git merge-base
+origin/master HEAD` for every other branch - verified locally against the exact bug commit before
+shipping (diffing against the correct historical merge-base reproduced the expected two-file,
+docs-only result).
+
 ### Over-conservative test parallelism (first pass)
 The first version of `junit-platform.properties` defaulted test *methods* to `same_thread`, only
 parallelizing across classes - guarding against a real risk (`SmtpEmailSenderTest`'s shared fixture)
