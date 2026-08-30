@@ -1,11 +1,23 @@
 FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
+# Copy only the dependency manifest first (build.gradle/settings.gradle/the wrapper), resolve
+# dependencies against just that, and only *then* copy the rest of the source - the standard
+# package-manager Docker caching pattern (same idea as COPY package.json before COPY . . in a Node
+# image). This layer - the expensive one, downloading the Gradle distribution itself plus every
+# dependency (including the jooqGenerator configuration, which `dependencies` resolves too since it
+# reports every configuration by default) - only invalidates when these manifest files actually
+# change, not on every commit, unlike the RUN below it.
+#
+# A previous version of this used `RUN --mount=type=cache,target=/root/.gradle` instead, which looked
+# equivalent but wasn't: a cache *mount* is BuildKit-local state tied to the runner's own disk, not
+# something build.yml's cache-to: type=gha exports (that only exports real image layers) - confirmed
+# by watching Gradle re-download its own distribution from scratch on a run that should have been a
+# cache hit. This version uses a genuine, exportable layer instead.
+COPY build.gradle settings.gradle gradlew ./
+COPY gradle ./gradle
+RUN ./gradlew --no-daemon dependencies > /dev/null
 COPY . .
-# Cache mount (not a layer) for Gradle's dependency/wrapper cache - persists across builds even when
-# COPY . . invalidates every layer after it (i.e. on every commit), unlike a plain layer cache which
-# would be useless here since the source always changes. Paired with build.yml's cache-from/cache-to:
-# type=gha on the build-push-action step, which caches the image layers themselves.
-RUN --mount=type=cache,target=/root/.gradle ./gradlew shadowJar -x test --no-daemon
+RUN ./gradlew shadowJar -x test --no-daemon
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
