@@ -49,9 +49,9 @@ class AircraftImportJobTest {
     void importsEveryRowWithARegistrationAndSkipsThoseWithout() throws IOException {
         AircraftImportJob.Result result = job.importFrom(fixtureReader());
 
-        assertThat(result.processed(), is(6));
+        assertThat(result.processed(), is(7));
         assertThat(result.skipped(), is(1));
-        assertThat(aircraftRepository.findAll().size(), is(6));
+        assertThat(aircraftRepository.findAll().size(), is(7));
     }
 
     @Test
@@ -74,6 +74,25 @@ class AircraftImportJobTest {
 
         Aircraft aircraft = aircraftRepository.findByRegistration("N12345").orElseThrow();
         assertThat(aircraft.getManufacturerIcao(), is("COMMANDER AIRCRAFT"));
+    }
+
+    @Test
+    void importsARowWithAManufacturerNameLongerThanOneHundredCharacters() throws IOException {
+        // Real OpenSky data had a manufacturername that was a 120-character joined list of
+        // surnames - past make's old VARCHAR(100) cap (see V10__aircraft_make_unbounded.sql).
+        job.importFrom(fixtureReader());
+
+        Aircraft aircraft = aircraftRepository.findByRegistration("N99999").orElseThrow();
+        assertThat(aircraft.getMake().length(), is(105));
+    }
+
+    @Test
+    void parsesAYearFromAFullIsoDateInBuilt() throws IOException {
+        // Real OpenSky data has built as a full ISO date on roughly half of all rows, not a bare
+        // year - a plain Integer.parseInt was silently dropping every one of them.
+        job.importFrom(fixtureReader());
+
+        assertThat(aircraftRepository.findByRegistration("N99999").orElseThrow().getBuilt(), is(1994));
     }
 
     @Test
@@ -114,7 +133,7 @@ class AircraftImportJobTest {
         job.importFrom(fixtureReader());
         job.importFrom(fixtureReader());
 
-        assertThat(aircraftRepository.findAll().size(), is(6));
+        assertThat(aircraftRepository.findAll().size(), is(7));
     }
 
     @Test
@@ -139,7 +158,7 @@ class AircraftImportJobTest {
         job.importFrom(fixtureReader());
 
         assertThat(aircraftRepository.findById(manuallyRegistered.getId()), is(Optional.of(manuallyRegistered)));
-        assertThat(aircraftRepository.findAll().size(), is(7));
+        assertThat(aircraftRepository.findAll().size(), is(8));
     }
 
     private Reader fixtureReader() {
