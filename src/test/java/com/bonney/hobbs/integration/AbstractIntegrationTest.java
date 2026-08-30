@@ -3,12 +3,18 @@ package com.bonney.hobbs.integration;
 import com.bonney.hobbs.AppConfig;
 import com.bonney.hobbs.HobbsApplication;
 import com.bonney.hobbs.client.HobbsClient;
+import com.bonney.hobbs.domain.Aircraft;
+import com.bonney.hobbs.domain.AircraftId;
+import com.bonney.hobbs.domain.AircraftRepository;
+import com.bonney.hobbs.domain.EngineCategory;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import com.bonney.hobbs.dto.InvitePilotDto;
 import com.bonney.hobbs.dto.RegisterDto;
 import com.bonney.hobbs.dto.SessionDto;
 import okhttp3.OkHttpClient;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -31,6 +37,7 @@ abstract class AbstractIntegrationTest {
     OkHttpClient httpClient;
     HobbsClient adminClient;
     RecordingEmailSender emailSender;
+    private String dbUrl;
 
     @BeforeEach
     void before() {
@@ -39,6 +46,7 @@ abstract class AbstractIntegrationTest {
         httpClient = fx.httpClient();
         emailSender = fx.emailSender();
         adminClient = fx.adminClient();
+        dbUrl = fx.dbUrl();
     }
 
     // Groups everything a fresh, isolated application instance needs (its own H2 database, its own
@@ -48,7 +56,7 @@ abstract class AbstractIntegrationTest {
     // (see FailedAttemptRepository's own injectable Clock for why - same reasoning as
     // RateLimitRepositoryTest already applies at the unit level).
     record Fixture(HobbsApplication application, OkHttpClient httpClient, HobbsClient adminClient,
-                    RecordingEmailSender emailSender) {
+                    RecordingEmailSender emailSender, String dbUrl) {
     }
 
     Fixture createFixture(Clock clock) {
@@ -64,7 +72,20 @@ abstract class AbstractIntegrationTest {
         SessionDto adminSession = bootstrapClient.register(new RegisterDto("admin", "admin@test.com", "Password123", bootstrapCode));
         HobbsClient fixtureAdminClient = HobbsClient.withAuth(
                 "http://localhost:" + fixtureApplication.getPort(), fixtureHttpClient, adminSession.getSessionId());
-        return new Fixture(fixtureApplication, fixtureHttpClient, fixtureAdminClient, fixtureEmailSender);
+        return new Fixture(fixtureApplication, fixtureHttpClient, fixtureAdminClient, fixtureEmailSender, dbUrl);
+    }
+
+    /**
+     * Aircraft is reference data, not pilot-submitted (see docs/plans/aircraft-picker.md) - there's
+     * no POST /aircraft for tests to create one through, so this seeds directly against the
+     * fixture's own database instead, the same one the running {@link #application} is using.
+     */
+    UUID seedAircraft(String registration, String make, String model) {
+        DSLContext dsl = DSL.using(dbUrl, "sa", "");
+        AircraftId id = AircraftId.random();
+        new AircraftRepository(dsl).save(new Aircraft(id, registration, make, model, EngineCategory.SINGLE_ENGINE,
+                null, null, null, null, null, null, null, null));
+        return id.value();
     }
 
     @AfterEach

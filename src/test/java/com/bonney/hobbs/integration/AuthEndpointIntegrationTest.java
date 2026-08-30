@@ -38,7 +38,7 @@ class AuthEndpointIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticatedRequestsAreRejected() {
-        assertThrows(FeignException.Unauthorized.class, () -> createClient().listAircraft());
+        assertThrows(FeignException.Unauthorized.class, () -> createClient().searchAircraft("xx"));
     }
 
     @Test

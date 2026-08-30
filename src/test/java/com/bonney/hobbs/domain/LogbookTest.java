@@ -15,6 +15,7 @@ import java.util.Optional;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,22 +91,24 @@ class LogbookTest {
     }
 
     @Test
-    void createAircraftSavesAndReturnsANewAircraft() {
-        Aircraft aircraft = logbook.createAircraft("G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
+    void searchAircraftDelegatesToTheRepositoryWithTheMaxResultsCap() {
+        List<Aircraft> expected = List.of(new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152",
+                EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null));
+        when(aircraftRepository.search("abcd", 50)).thenReturn(expected);
 
-        assertThat(aircraft.getRegistration(), is("G-ABCD"));
-        verify(aircraftRepository).save(aircraft);
+        List<Aircraft> result = logbook.searchAircraft("abcd");
+
+        assertThat(result, is(expected));
     }
 
     @Test
-    void listAircraftDelegatesToTheRepository() {
-        List<Aircraft> expected = List.of(new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152",
-                EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null));
-        when(aircraftRepository.findAll()).thenReturn(expected);
+    void searchAircraftRejectsASearchShorterThanTheMinimumLength() {
+        assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft("a"));
+    }
 
-        List<Aircraft> result = logbook.listAircraft();
-
-        assertThat(result, is(expected));
+    @Test
+    void searchAircraftRejectsANullSearch() {
+        assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft(null));
     }
 
     private FlightEntry aFlightEntry(FlightEntryId id) {

@@ -12,6 +12,7 @@ import com.bonney.hobbs.domain.DuplicateEmailException;
 import com.bonney.hobbs.domain.EmailSender;
 import com.bonney.hobbs.domain.FailedAttemptRepository;
 import com.bonney.hobbs.domain.FlightEntryRepository;
+import com.bonney.hobbs.domain.InvalidAircraftSearchException;
 import com.bonney.hobbs.domain.InvalidCredentialsException;
 import com.bonney.hobbs.domain.InvalidEmailException;
 import com.bonney.hobbs.domain.InvalidNameException;
@@ -174,6 +175,7 @@ public class HobbsApplication {
             javalinConfig.routes.exception(InvalidCredentialsException.class, (e, ctx) -> ctx.status(HttpStatus.UNAUTHORIZED));
             javalinConfig.routes.exception(InvalidPasswordException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST));
             javalinConfig.routes.exception(InvalidPageSizeException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST));
+            javalinConfig.routes.exception(InvalidAircraftSearchException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST));
             javalinConfig.routes.exception(InvalidEmailException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST));
             javalinConfig.routes.exception(InvalidNameException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST));
             javalinConfig.routes.exception(InvalidPasswordResetCodeException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST));

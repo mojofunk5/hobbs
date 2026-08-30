@@ -10,7 +10,10 @@ public class AircraftMapper {
     }
 
     public static AircraftDto toAircraftDto(Aircraft domain) {
-        return new AircraftDto(domain.getId().value(), domain.getRegistration(), domain.getMake(),
-                domain.getModel(), domain.getEngineCategory().name());
+        String engineCategory = domain.getEngineCategory() == null ? null : domain.getEngineCategory().name();
+        return new AircraftDto(domain.getId().value(), domain.getRegistration(), domain.getMake(), domain.getModel(),
+                engineCategory, domain.getManufacturerIcao(), domain.getTypeCode(), domain.getSerialNumber(),
+                domain.getOperator(), domain.getOwner(), domain.getBuilt(), domain.getEngines(),
+                domain.getCategoryDescription());
     }
 }

@@ -1,7 +1,6 @@
 package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
-import com.bonney.hobbs.dto.CreateAircraftDto;
 import com.bonney.hobbs.dto.FlightEntryDto;
 import feign.FeignException;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,7 @@ class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
     @Test
     void aPilotCanLogAFlightAndReadItBack() {
         HobbsClient pilot = createAuthenticatedClient();
-        UUID aircraftId = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
 
         FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
 
@@ -35,9 +34,9 @@ class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
     void listFlightEntriesOnlyReturnsTheAuthenticatedPilotsOwnEntries() {
         HobbsClient first = createAuthenticatedClient();
         HobbsClient second = createAuthenticatedClient();
-        UUID aircraftId = first.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
         FlightEntryDto firstEntry = first.createFlightEntry(aFlightEntry(first, aircraftId, null));
-        second.createAircraft(new CreateAircraftDto("G-WXYZ", "Piper", "PA-28", "SINGLE_ENGINE"));
+        seedAircraft("G-WXYZ", "Piper", "PA-28");
 
         List<FlightEntryDto> firstList = first.listFlightEntries();
         List<FlightEntryDto> secondList = second.listFlightEntries();
@@ -50,7 +49,7 @@ class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
     void aPilotCannotFetchAnotherPilotsFlightEntry() {
         HobbsClient first = createAuthenticatedClient();
         HobbsClient second = createAuthenticatedClient();
-        UUID aircraftId = first.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
         FlightEntryDto entry = first.createFlightEntry(aFlightEntry(first, aircraftId, null));
 
         assertThrows(FeignException.Forbidden.class, () -> second.getFlightEntry(entry.getId()));
@@ -69,7 +68,7 @@ class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
         // This is really the same assertion as aPilotCanLogAFlightAndReadItBack's null-track check,
         // named explicitly to keep that invariant visible as a deliberate contract, not incidental.
         HobbsClient pilot = createAuthenticatedClient();
-        UUID aircraftId = pilot.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
 
         FlightEntryDto created = pilot.createFlightEntry(aFlightEntry(pilot, aircraftId, null));
 

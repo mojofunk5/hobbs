@@ -1,6 +1,8 @@
 # Plan: Aircraft reference data & picker
 
-**Status:** Designed 2026-08-30, not yet implemented.
+**Status:** Designed 2026-08-30. Backend (chunks 1-3: migration, import job, search endpoint)
+implemented the same day - see hobbs#32/#33/#34. `hobbs-ui` (chunk 4: picker widget + Browse
+Aircraft page) not yet built.
 
 ## Context
 

@@ -163,9 +163,15 @@ real time would intermittently fail whenever a second ticks over mid-test.
     flight with them, plus yourself) - not a global list. `hobbs-ui`'s picker widget (chunk 2 of the
     plan) not yet built. Aircraft doesn't need this scoping: it's already modelled as shared across
     all pilots (see `AircraftEndpoint`'s doc comment).
-  - **Picking or registering an aircraft.** Not yet designed. No scoping question (aircraft are
-    already global, `GET /aircraft` returns everyone's) - just needs a search-by-registration
-    endpoint and a picker/create-inline UX in `hobbs-ui`, same shape as the pilot picker's UI half.
+  - **Picking an aircraft.** Backend done - see
+    [`docs/plans/aircraft-picker.md`](docs/plans/aircraft-picker.md): `Aircraft` is now reference
+    data seeded/reconciled from OpenSky's aircraftDatabase.csv (the `import-aircraft` CLI
+    subcommand), not pilot-submitted - `POST /aircraft` is gone. `GET /aircraft?search=` (required,
+    minimum 2 characters, capped at 50 results) replaces the old unfiltered `GET /aircraft`.
+    `hobbs-ui`'s picker widget and Browse Aircraft page (chunk 4 of the plan) not yet built. Unlike
+    the pilot picker, there's no "add aircraft" affordance at all - gap-filling for aircraft missing
+    from the seed is a deliberately separate, not-yet-built later story (an admin-only
+    AeroDataBox-backed single-registration lookup - see the plan doc's Out of scope section).
   - **Picking or registering a location (departure/arrival place).** Not yet designed, and bigger
     than the other two: `FlightEntry.departurePlace`/`arrivalPlace` are still plain `String`s today,
     not an id referencing a real entity - see [`FlightEntry.java`]

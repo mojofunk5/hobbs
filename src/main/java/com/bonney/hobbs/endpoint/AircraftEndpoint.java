@@ -1,10 +1,7 @@
 package com.bonney.hobbs.endpoint;
 
-import com.bonney.hobbs.domain.Aircraft;
-import com.bonney.hobbs.domain.EngineCategory;
 import com.bonney.hobbs.domain.Logbook;
 import com.bonney.hobbs.dto.AircraftDto;
-import com.bonney.hobbs.dto.CreateAircraftDto;
 import com.bonney.hobbs.mapper.AircraftMapper;
 import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
@@ -21,41 +18,31 @@ public class AircraftEndpoint {
     }
 
     public void registerRoutes(JavalinConfig config) {
-        config.routes.post("aircraft", this::createAircraft);
-        config.routes.get("aircraft", this::listAircraft);
-    }
-
-    @OpenApi(
-        path = "/aircraft",
-        methods = HttpMethod.POST,
-        summary = "Register an aircraft",
-        description = "Registers an aircraft (registration, make, model, engine category) so it can be "
-                + "referenced from flight entries. Shared across all pilots, not scoped to one account - "
-                + "an aircraft like a shared club trainer only needs registering once.",
-        tags = {"Aircraft"},
-        requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateAircraftDto.class)),
-        responses = {
-            @OpenApiResponse(status = "200", content = @OpenApiContent(from = AircraftDto.class))
-        }
-    )
-    private void createAircraft(Context context) {
-        CreateAircraftDto request = context.bodyAsClass(CreateAircraftDto.class);
-        Aircraft aircraft = logbook.createAircraft(request.getRegistration(), request.getMake(),
-                request.getModel(), EngineCategory.valueOf(request.getEngineCategory()));
-        context.json(AircraftMapper.toAircraftDto(aircraft));
+        config.routes.get("aircraft", this::searchAircraft);
     }
 
     @OpenApi(
         path = "/aircraft",
         methods = HttpMethod.GET,
-        summary = "List all registered aircraft",
+        summary = "Search aircraft reference data",
+        description = "Searches aircraft seeded from OpenSky's aircraftDatabase.csv (see "
+                + "docs/plans/aircraft-picker.md) - aircraft are reference data, not pilot-submitted; there is "
+                + "no POST /aircraft. Unlike GET /pilot?search=, `search` is required (minimum 2 characters) - "
+                + "against the full imported dataset (~600k rows globally, not just UK-registered), an empty or "
+                + "missing search would mean \"everything\", not a sane response. Case-insensitive substring match "
+                + "across registration/make/model, capped at 50 results ordered by registration. Backs both the "
+                + "flight-entry aircraft picker and the Browse Aircraft page.",
         tags = {"Aircraft"},
+        queryParams = @OpenApiParam(name = "search", type = String.class, required = true,
+                description = "Case-insensitive substring match on registration/make/model - required, minimum 2 characters"),
         responses = {
-            @OpenApiResponse(status = "200", content = @OpenApiContent(from = AircraftDto[].class))
+            @OpenApiResponse(status = "200", content = @OpenApiContent(from = AircraftDto[].class)),
+            @OpenApiResponse(status = "400", description = "search is missing or shorter than 2 characters")
         }
     )
-    private void listAircraft(Context context) {
-        List<AircraftDto> aircraft = logbook.listAircraft().stream()
+    private void searchAircraft(Context context) {
+        String search = context.queryParam("search");
+        List<AircraftDto> aircraft = logbook.searchAircraft(search).stream()
                 .map(AircraftMapper::toAircraftDto)
                 .toList();
         context.json(aircraft);
