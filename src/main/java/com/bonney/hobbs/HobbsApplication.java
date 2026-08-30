@@ -6,6 +6,8 @@ import com.bonney.hobbs.domain.AdminBootstrap;
 import com.bonney.hobbs.domain.AdminRepository;
 import com.bonney.hobbs.domain.AircraftImportJob;
 import com.bonney.hobbs.domain.AircraftRepository;
+import com.bonney.hobbs.domain.AirfieldImportJob;
+import com.bonney.hobbs.domain.AirfieldRepository;
 import com.bonney.hobbs.domain.Auth;
 import com.bonney.hobbs.domain.AuthIdentityRepository;
 import com.bonney.hobbs.domain.DuplicateEmailException;
@@ -199,6 +201,10 @@ public class HobbsApplication {
             importAircraft(AppConfig.fromClasspath(), Path.of(args[1]));
             return;
         }
+        if (args.length == 2 && "import-airfields".equals(args[0])) {
+            importAirfields(AppConfig.fromClasspath(), Path.of(args[1]));
+            return;
+        }
         new HobbsApplication(Integer.parseInt(args[0]));
     }
 
@@ -230,6 +236,27 @@ public class HobbsApplication {
             Settings settings = new Settings().withRenderQuotedNames(RenderQuotedNames.NEVER);
             DSLContext dsl = DSL.using(dataSource, JDBCUtils.dialect(config.dbUrl()), settings);
             AircraftImportJob job = new AircraftImportJob(new AircraftRepository(dsl));
+            try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
+                job.importFrom(reader);
+            }
+        } finally {
+            closeDataSource(dataSource);
+        }
+    }
+
+    /**
+     * Runs the OurAirports airfield reference-data import/reconciliation job against an
+     * already-downloaded CSV and exits, without starting the server - same "explicit, deliberate
+     * step" reasoning as {@link #migrate}. See {@link AirfieldImportJob} for the
+     * upsert-by-(sourceName, sourceId) behaviour and its GB-only/active/fixed-wing filtering;
+     * re-running this against the same or a newer CSV is always safe.
+     */
+    public static void importAirfields(AppConfig config, Path csvPath) throws IOException {
+        DataSource dataSource = createDataSource(config);
+        try {
+            Settings settings = new Settings().withRenderQuotedNames(RenderQuotedNames.NEVER);
+            DSLContext dsl = DSL.using(dataSource, JDBCUtils.dialect(config.dbUrl()), settings);
+            AirfieldImportJob job = new AirfieldImportJob(new AirfieldRepository(dsl));
             try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
                 job.importFrom(reader);
             }
