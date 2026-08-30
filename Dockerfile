@@ -1,7 +1,11 @@
 FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 COPY . .
-RUN ./gradlew shadowJar -x test --no-daemon
+# Cache mount (not a layer) for Gradle's dependency/wrapper cache - persists across builds even when
+# COPY . . invalidates every layer after it (i.e. on every commit), unlike a plain layer cache which
+# would be useless here since the source always changes. Paired with build.yml's cache-from/cache-to:
+# type=gha on the build-push-action step, which caches the image layers themselves.
+RUN --mount=type=cache,target=/root/.gradle ./gradlew shadowJar -x test --no-daemon
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
