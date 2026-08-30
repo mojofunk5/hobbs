@@ -66,4 +66,22 @@ class AircraftEndpointIntegrationTest extends AbstractIntegrationTest {
         assertThat(pilot.searchAircraft("CESSNA").stream().map(AircraftDto::getId).toList(),
                 containsInAnyOrder(cessna, cessnaTwo));
     }
+
+    @Test
+    void registrationOnlySearchDoesNotMatchMakeOrModel() {
+        HobbsClient pilot = createAuthenticatedClient();
+        UUID id = seedAircraft("G-ABCD", "Cessna", "152");
+        seedAircraft("G-WXYZ", "Piper", "Warrior");
+
+        assertThat(pilot.searchAircraft("ABCD", true).stream().map(AircraftDto::getId).toList(), contains(id));
+        assertThat(pilot.searchAircraft("warrior", true), is(java.util.List.of()));
+    }
+
+    @Test
+    void registrationOnlyFalseStillMatchesMakeOrModel() {
+        HobbsClient pilot = createAuthenticatedClient();
+        UUID id = seedAircraft("G-ABCD", "Cessna", "152");
+
+        assertThat(pilot.searchAircraft("cess", false).stream().map(AircraftDto::getId).toList(), contains(id));
+    }
 }

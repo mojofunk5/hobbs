@@ -1,6 +1,7 @@
 package com.bonney.hobbs.domain;
 
 import com.bonney.hobbs.jooq.tables.records.AircraftRecord;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -116,22 +117,41 @@ public class AircraftRepository {
     }
 
     /**
-     * Backs GET /aircraft?search= - case-insensitive substring match across
-     * registration/make/model, capped at {@code limit} rows ordered by registration. Unlike
+     * Backs GET /aircraft?search= for the Browse Aircraft page - case-insensitive substring match
+     * across registration/make/model, capped at {@code limit} rows ordered by registration. Unlike
      * {@link #findAll}, the caller (the endpoint) is responsible for requiring a non-blank search
      * term - this method has no "return everything" mode, since against the full imported dataset
      * that would mean ~600k rows.
      */
     public List<Aircraft> search(String search, int limit) {
-        String pattern = "%" + search.toLowerCase() + "%";
+        String pattern = likePattern(search);
+        return fetchMatching(DSL.lower(AIRCRAFT.REGISTRATION).like(pattern)
+                .or(DSL.lower(AIRCRAFT.MAKE).like(pattern))
+                .or(DSL.lower(AIRCRAFT.MODEL).like(pattern)), limit);
+    }
+
+    /**
+     * Backs GET /aircraft?search=&registrationOnly=true for the flight-entry picker - unlike
+     * {@link #search}, deliberately narrower: a pilot picking an aircraft they already know the
+     * tail number of wants exact-ish registration matches, not incidental hits on a make/model
+     * substring (e.g. searching "warrior" would otherwise surface every Piper Warrior in the
+     * dataset). Same case-insensitive substring/limit/ordering semantics otherwise.
+     */
+    public List<Aircraft> searchByRegistration(String search, int limit) {
+        return fetchMatching(DSL.lower(AIRCRAFT.REGISTRATION).like(likePattern(search)), limit);
+    }
+
+    private List<Aircraft> fetchMatching(Condition condition, int limit) {
         return dsl.selectFrom(AIRCRAFT)
-                .where(DSL.lower(AIRCRAFT.REGISTRATION).like(pattern)
-                        .or(DSL.lower(AIRCRAFT.MAKE).like(pattern))
-                        .or(DSL.lower(AIRCRAFT.MODEL).like(pattern)))
+                .where(condition)
                 .orderBy(AIRCRAFT.REGISTRATION)
                 .limit(limit)
                 .fetch()
                 .map(AircraftRepository::toAircraft);
+    }
+
+    private static String likePattern(String search) {
+        return "%" + search.toLowerCase() + "%";
     }
 
     private static Aircraft toAircraft(AircraftRecord record) {

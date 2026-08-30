@@ -53,10 +53,12 @@ public class Logbook {
         return flightEntryRepository.findAllByPilotId(pilotId);
     }
 
-    public List<Aircraft> searchAircraft(String search) {
+    public List<Aircraft> searchAircraft(String search, boolean registrationOnly) {
         if (search == null || search.length() < MIN_AIRCRAFT_SEARCH_LENGTH) {
             throw new InvalidAircraftSearchException(MIN_AIRCRAFT_SEARCH_LENGTH);
         }
-        return aircraftRepository.search(search, MAX_AIRCRAFT_SEARCH_RESULTS);
+        return registrationOnly
+                ? aircraftRepository.searchByRegistration(search, MAX_AIRCRAFT_SEARCH_RESULTS)
+                : aircraftRepository.search(search, MAX_AIRCRAFT_SEARCH_RESULTS);
     }
 }

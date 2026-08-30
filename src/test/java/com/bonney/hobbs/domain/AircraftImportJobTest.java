@@ -49,9 +49,21 @@ class AircraftImportJobTest {
     void importsEveryRowWithARegistrationAndSkipsThoseWithout() throws IOException {
         AircraftImportJob.Result result = job.importFrom(fixtureReader());
 
-        assertThat(result.processed(), is(4));
+        assertThat(result.processed(), is(5));
         assertThat(result.skipped(), is(1));
-        assertThat(aircraftRepository.findAll().size(), is(4));
+        assertThat(aircraftRepository.findAll().size(), is(5));
+    }
+
+    @Test
+    void importsARowWithARegistrationButNoManufacturerOrModel() throws IOException {
+        job.importFrom(fixtureReader());
+
+        Aircraft aircraft = aircraftRepository.findByRegistration("N5926K").orElseThrow();
+        assertThat(aircraft.getMake(), is(nullValue()));
+        assertThat(aircraft.getModel(), is(nullValue()));
+        assertThat(aircraft.getManufacturerIcao(), is("ROCKWELL"));
+        assertThat(aircraft.getTypeCode(), is("AC90"));
+        assertThat(aircraft.getEngineCategory(), is(EngineCategory.MULTI_ENGINE));
     }
 
     @Test
@@ -92,7 +104,7 @@ class AircraftImportJobTest {
         job.importFrom(fixtureReader());
         job.importFrom(fixtureReader());
 
-        assertThat(aircraftRepository.findAll().size(), is(4));
+        assertThat(aircraftRepository.findAll().size(), is(5));
     }
 
     @Test
@@ -117,7 +129,7 @@ class AircraftImportJobTest {
         job.importFrom(fixtureReader());
 
         assertThat(aircraftRepository.findById(manuallyRegistered.getId()), is(Optional.of(manuallyRegistered)));
-        assertThat(aircraftRepository.findAll().size(), is(5));
+        assertThat(aircraftRepository.findAll().size(), is(6));
     }
 
     private Reader fixtureReader() {
