@@ -100,7 +100,7 @@ class LogbookTest {
     @Test
     void listAircraftDelegatesToTheRepository() {
         List<Aircraft> expected = List.of(new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152",
-                EngineCategory.SINGLE_ENGINE));
+                EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null));
         when(aircraftRepository.findAll()).thenReturn(expected);
 
         List<Aircraft> result = logbook.listAircraft();

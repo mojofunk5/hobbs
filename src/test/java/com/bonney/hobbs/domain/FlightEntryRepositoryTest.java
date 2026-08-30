@@ -47,7 +47,8 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(instructor);
         instructorPilotId = instructor.getId();
 
-        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
+        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE,
+                null, null, null, null, null, null, null, null);
         new AircraftRepository(dsl).save(aircraft);
         aircraftId = aircraft.getId();
     }

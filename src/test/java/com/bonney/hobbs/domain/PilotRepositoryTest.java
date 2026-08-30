@@ -219,7 +219,8 @@ class PilotRepositoryTest {
         repository.save(instructor);
         Pilot coPilot = new Pilot(PilotId.random(), "Amy Co-Pilot", null);
         repository.save(coPilot);
-        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
+        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE,
+                null, null, null, null, null, null, null, null);
         new AircraftRepository(dsl).save(aircraft);
         new FlightEntryRepository(dsl).save(
                 flightEntry(william.getId(), instructor.getId(), coPilot.getId(), aircraft.getId()));
@@ -255,7 +256,8 @@ class PilotRepositoryTest {
         repository.save(william);
         Pilot instructor = new Pilot(PilotId.random(), "Instructor Smith", null);
         repository.save(instructor);
-        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
+        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE,
+                null, null, null, null, null, null, null, null);
         new AircraftRepository(dsl).save(aircraft);
         FlightEntryRepository flightEntryRepository = new FlightEntryRepository(dsl);
         flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId()));

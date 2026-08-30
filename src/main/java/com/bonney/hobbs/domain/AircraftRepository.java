@@ -2,6 +2,7 @@ package com.bonney.hobbs.domain;
 
 import com.bonney.hobbs.jooq.tables.records.AircraftRecord;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,18 +18,77 @@ public class AircraftRepository {
     }
 
     public void save(Aircraft aircraft) {
+        String engineCategory = aircraft.getEngineCategory() == null ? null : aircraft.getEngineCategory().name();
         dsl.insertInto(AIRCRAFT)
                 .set(AIRCRAFT.ID, aircraft.getId().value())
                 .set(AIRCRAFT.REGISTRATION, aircraft.getRegistration())
                 .set(AIRCRAFT.MAKE, aircraft.getMake())
                 .set(AIRCRAFT.MODEL, aircraft.getModel())
-                .set(AIRCRAFT.ENGINE_CATEGORY, aircraft.getEngineCategory().name())
+                .set(AIRCRAFT.ENGINE_CATEGORY, engineCategory)
+                .set(AIRCRAFT.MANUFACTURER_ICAO, aircraft.getManufacturerIcao())
+                .set(AIRCRAFT.TYPE_CODE, aircraft.getTypeCode())
+                .set(AIRCRAFT.SERIAL_NUMBER, aircraft.getSerialNumber())
+                .set(AIRCRAFT.OPERATOR, aircraft.getOperator())
+                .set(AIRCRAFT.OWNER, aircraft.getOwner())
+                .set(AIRCRAFT.BUILT, aircraft.getBuilt())
+                .set(AIRCRAFT.ENGINES, aircraft.getEngines())
+                .set(AIRCRAFT.CATEGORY_DESCRIPTION, aircraft.getCategoryDescription())
                 .onConflict(AIRCRAFT.ID)
                 .doUpdate()
                 .set(AIRCRAFT.REGISTRATION, aircraft.getRegistration())
                 .set(AIRCRAFT.MAKE, aircraft.getMake())
                 .set(AIRCRAFT.MODEL, aircraft.getModel())
-                .set(AIRCRAFT.ENGINE_CATEGORY, aircraft.getEngineCategory().name())
+                .set(AIRCRAFT.ENGINE_CATEGORY, engineCategory)
+                .set(AIRCRAFT.MANUFACTURER_ICAO, aircraft.getManufacturerIcao())
+                .set(AIRCRAFT.TYPE_CODE, aircraft.getTypeCode())
+                .set(AIRCRAFT.SERIAL_NUMBER, aircraft.getSerialNumber())
+                .set(AIRCRAFT.OPERATOR, aircraft.getOperator())
+                .set(AIRCRAFT.OWNER, aircraft.getOwner())
+                .set(AIRCRAFT.BUILT, aircraft.getBuilt())
+                .set(AIRCRAFT.ENGINES, aircraft.getEngines())
+                .set(AIRCRAFT.CATEGORY_DESCRIPTION, aircraft.getCategoryDescription())
+                .execute();
+    }
+
+    /**
+     * Upsert-by-registration for the OpenSky import job (see docs/plans/aircraft-picker.md) - the
+     * natural key both systems agree on, case-insensitive exact match (registration already has a
+     * unique constraint, from before this plan). A CSV row matching an existing registration
+     * updates that row's reference fields in place (its {@link AircraftId} is never touched by the
+     * conflict clause, so it stays stable even though it's not known ahead of time - important
+     * since FlightEntry rows may already reference it); a registration not yet present is inserted
+     * fresh under {@code aircraft.getId()}. One round trip per call, so the import job can batch
+     * these rather than doing a select-then-insert-or-update per CSV row.
+     */
+    public void upsertByRegistration(Aircraft aircraft) {
+        String engineCategory = aircraft.getEngineCategory() == null ? null : aircraft.getEngineCategory().name();
+        dsl.insertInto(AIRCRAFT)
+                .set(AIRCRAFT.ID, aircraft.getId().value())
+                .set(AIRCRAFT.REGISTRATION, aircraft.getRegistration())
+                .set(AIRCRAFT.MAKE, aircraft.getMake())
+                .set(AIRCRAFT.MODEL, aircraft.getModel())
+                .set(AIRCRAFT.ENGINE_CATEGORY, engineCategory)
+                .set(AIRCRAFT.MANUFACTURER_ICAO, aircraft.getManufacturerIcao())
+                .set(AIRCRAFT.TYPE_CODE, aircraft.getTypeCode())
+                .set(AIRCRAFT.SERIAL_NUMBER, aircraft.getSerialNumber())
+                .set(AIRCRAFT.OPERATOR, aircraft.getOperator())
+                .set(AIRCRAFT.OWNER, aircraft.getOwner())
+                .set(AIRCRAFT.BUILT, aircraft.getBuilt())
+                .set(AIRCRAFT.ENGINES, aircraft.getEngines())
+                .set(AIRCRAFT.CATEGORY_DESCRIPTION, aircraft.getCategoryDescription())
+                .onConflict(AIRCRAFT.REGISTRATION)
+                .doUpdate()
+                .set(AIRCRAFT.MAKE, aircraft.getMake())
+                .set(AIRCRAFT.MODEL, aircraft.getModel())
+                .set(AIRCRAFT.ENGINE_CATEGORY, engineCategory)
+                .set(AIRCRAFT.MANUFACTURER_ICAO, aircraft.getManufacturerIcao())
+                .set(AIRCRAFT.TYPE_CODE, aircraft.getTypeCode())
+                .set(AIRCRAFT.SERIAL_NUMBER, aircraft.getSerialNumber())
+                .set(AIRCRAFT.OPERATOR, aircraft.getOperator())
+                .set(AIRCRAFT.OWNER, aircraft.getOwner())
+                .set(AIRCRAFT.BUILT, aircraft.getBuilt())
+                .set(AIRCRAFT.ENGINES, aircraft.getEngines())
+                .set(AIRCRAFT.CATEGORY_DESCRIPTION, aircraft.getCategoryDescription())
                 .execute();
     }
 
@@ -40,6 +100,14 @@ public class AircraftRepository {
                 .map(AircraftRepository::toAircraft);
     }
 
+    public Optional<Aircraft> findByRegistration(String registration) {
+        return Optional.ofNullable(
+                dsl.selectFrom(AIRCRAFT)
+                        .where(AIRCRAFT.REGISTRATION.equalIgnoreCase(registration))
+                        .fetchOne())
+                .map(AircraftRepository::toAircraft);
+    }
+
     public List<Aircraft> findAll() {
         return dsl.selectFrom(AIRCRAFT)
                 .orderBy(AIRCRAFT.REGISTRATION)
@@ -47,12 +115,41 @@ public class AircraftRepository {
                 .map(AircraftRepository::toAircraft);
     }
 
+    /**
+     * Backs GET /aircraft?search= - case-insensitive substring match across
+     * registration/make/model, capped at {@code limit} rows ordered by registration. Unlike
+     * {@link #findAll}, the caller (the endpoint) is responsible for requiring a non-blank search
+     * term - this method has no "return everything" mode, since against the full imported dataset
+     * that would mean ~600k rows.
+     */
+    public List<Aircraft> search(String search, int limit) {
+        String pattern = "%" + search.toLowerCase() + "%";
+        return dsl.selectFrom(AIRCRAFT)
+                .where(DSL.lower(AIRCRAFT.REGISTRATION).like(pattern)
+                        .or(DSL.lower(AIRCRAFT.MAKE).like(pattern))
+                        .or(DSL.lower(AIRCRAFT.MODEL).like(pattern)))
+                .orderBy(AIRCRAFT.REGISTRATION)
+                .limit(limit)
+                .fetch()
+                .map(AircraftRepository::toAircraft);
+    }
+
     private static Aircraft toAircraft(AircraftRecord record) {
+        EngineCategory engineCategory = record.getEngineCategory() == null
+                ? null : EngineCategory.valueOf(record.getEngineCategory());
         return new Aircraft(
                 AircraftId.from(record.getId()),
                 record.getRegistration(),
                 record.getMake(),
                 record.getModel(),
-                EngineCategory.valueOf(record.getEngineCategory()));
+                engineCategory,
+                record.getManufacturerIcao(),
+                record.getTypeCode(),
+                record.getSerialNumber(),
+                record.getOperator(),
+                record.getOwner(),
+                record.getBuilt(),
+                record.getEngines(),
+                record.getCategoryDescription());
     }
 }

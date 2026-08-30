@@ -4,6 +4,7 @@ import com.bonney.hobbs.domain.AccountRepository;
 import com.bonney.hobbs.domain.Accounts;
 import com.bonney.hobbs.domain.AdminBootstrap;
 import com.bonney.hobbs.domain.AdminRepository;
+import com.bonney.hobbs.domain.AircraftImportJob;
 import com.bonney.hobbs.domain.AircraftRepository;
 import com.bonney.hobbs.domain.Auth;
 import com.bonney.hobbs.domain.AuthIdentityRepository;
@@ -52,6 +53,10 @@ import org.jooq.impl.DSL;
 import org.jooq.tools.jdbc.JDBCUtils;
 
 import javax.sql.DataSource;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.NoSuchElementException;
@@ -183,9 +188,13 @@ public class HobbsApplication {
         .start(port);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length == 1 && "migrate".equals(args[0])) {
             migrate(AppConfig.fromClasspath());
+            return;
+        }
+        if (args.length == 2 && "import-aircraft".equals(args[0])) {
+            importAircraft(AppConfig.fromClasspath(), Path.of(args[1]));
             return;
         }
         new HobbsApplication(Integer.parseInt(args[0]));
@@ -202,6 +211,26 @@ public class HobbsApplication {
         DataSource dataSource = createDataSource(config);
         try {
             Flyway.configure().dataSource(dataSource).load().migrate();
+        } finally {
+            closeDataSource(dataSource);
+        }
+    }
+
+    /**
+     * Runs the OpenSky aircraft reference-data import/reconciliation job against an
+     * already-downloaded CSV and exits, without starting the server - same "explicit, deliberate
+     * step" reasoning as {@link #migrate}. See {@link AircraftImportJob} for the upsert-by-registration
+     * behaviour; re-running this against the same or a newer CSV is always safe.
+     */
+    public static void importAircraft(AppConfig config, Path csvPath) throws IOException {
+        DataSource dataSource = createDataSource(config);
+        try {
+            Settings settings = new Settings().withRenderQuotedNames(RenderQuotedNames.NEVER);
+            DSLContext dsl = DSL.using(dataSource, JDBCUtils.dialect(config.dbUrl()), settings);
+            AircraftImportJob job = new AircraftImportJob(new AircraftRepository(dsl));
+            try (BufferedReader reader = Files.newBufferedReader(csvPath)) {
+                job.importFrom(reader);
+            }
         } finally {
             closeDataSource(dataSource);
         }
