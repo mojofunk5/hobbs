@@ -8,6 +8,7 @@ import org.jooq.impl.DSL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -180,5 +181,86 @@ class PilotRepositoryTest {
         repository.save(unclaimed);
 
         assertThat(repository.findById(unclaimed.getId()).orElseThrow().getCreatedBy(), is(creator.getId()));
+    }
+
+    private List<String> knownToNames(PilotId callerId, String search) {
+        return repository.findKnownTo(callerId, search).stream().map(Pilot::getName).toList();
+    }
+
+    private FlightEntry flightEntry(PilotId ownerId, PilotId pilotInCommandId, PilotId coPilotId, AircraftId aircraftId) {
+        return new FlightEntry(FlightEntryId.random(), ownerId, aircraftId, null, LocalDate.now(),
+                "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), pilotInCommandId, coPilotId,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+    }
+
+    @Test
+    void findKnownToAlwaysIncludesTheCallerThemselves() {
+        Pilot william = new Pilot(PilotId.random(), "William", null);
+        repository.save(william);
+
+        assertThat(knownToNames(william.getId(), null), contains("William"));
+    }
+
+    @Test
+    void findKnownToIncludesPilotsTheCallerCreated() {
+        Pilot william = new Pilot(PilotId.random(), "William", null);
+        repository.save(william);
+        Pilot louis = new Pilot(PilotId.random(), "Louis", william.getId());
+        repository.save(louis);
+
+        assertThat(knownToNames(william.getId(), null), containsInAnyOrder("William", "Louis"));
+    }
+
+    @Test
+    void findKnownToIncludesPilotsFlownWithAsPilotInCommandOrCoPilot() {
+        Pilot william = new Pilot(PilotId.random(), "William", null);
+        repository.save(william);
+        Pilot instructor = new Pilot(PilotId.random(), "Instructor Smith", null);
+        repository.save(instructor);
+        Pilot coPilot = new Pilot(PilotId.random(), "Amy Co-Pilot", null);
+        repository.save(coPilot);
+        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
+        new AircraftRepository(dsl).save(aircraft);
+        new FlightEntryRepository(dsl).save(
+                flightEntry(william.getId(), instructor.getId(), coPilot.getId(), aircraft.getId()));
+
+        assertThat(knownToNames(william.getId(), null),
+                containsInAnyOrder("William", "Instructor Smith", "Amy Co-Pilot"));
+    }
+
+    @Test
+    void findKnownToExcludesPilotsUnrelatedToTheCaller() {
+        Pilot william = new Pilot(PilotId.random(), "William", null);
+        repository.save(william);
+        Pilot stranger = new Pilot(PilotId.random(), "Stranger", null);
+        repository.save(stranger);
+
+        assertThat(knownToNames(william.getId(), null), not(hasItem("Stranger")));
+    }
+
+    @Test
+    void findKnownToFiltersByCaseInsensitiveNameSubstring() {
+        Pilot william = new Pilot(PilotId.random(), "William", null);
+        repository.save(william);
+        Pilot louis = new Pilot(PilotId.random(), "Louis", william.getId());
+        repository.save(louis);
+
+        assertThat(knownToNames(william.getId(), "lou"), contains("Louis"));
+        assertThat(knownToNames(william.getId(), "zzz"), is(empty()));
+    }
+
+    @Test
+    void findKnownToOnlyShowsAPilotFlownWithMultipleTimesOnce() {
+        Pilot william = new Pilot(PilotId.random(), "William", null);
+        repository.save(william);
+        Pilot instructor = new Pilot(PilotId.random(), "Instructor Smith", null);
+        repository.save(instructor);
+        Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE);
+        new AircraftRepository(dsl).save(aircraft);
+        FlightEntryRepository flightEntryRepository = new FlightEntryRepository(dsl);
+        flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId()));
+        flightEntryRepository.save(flightEntry(william.getId(), instructor.getId(), null, aircraft.getId()));
+
+        assertThat(knownToNames(william.getId(), null), containsInAnyOrder("William", "Instructor Smith"));
     }
 }

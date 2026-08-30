@@ -47,6 +47,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
@@ -217,6 +218,57 @@ class HobbsApplicationIntegrationTest {
         SessionDto session = createClient().register(new RegisterDto("Invited Pilot", email, "Password123", code));
 
         assertThat(session.getName(), is("Invited Pilot"));
+    }
+
+    @Test
+    void searchPilotsAlwaysIncludesTheCallerThemselves() {
+        HobbsClient william = createAuthenticatedClient();
+
+        List<PilotSummaryDto> known = william.searchPilots();
+
+        assertThat(known.stream().map(PilotSummaryDto::getName).toList(), contains("testuser"));
+    }
+
+    @Test
+    void searchPilotsIncludesAPilotTheCallerCreated() {
+        HobbsClient william = createAuthenticatedClient();
+        william.createPilot(new CreateUnclaimedPilotDto("Louis"));
+
+        List<PilotSummaryDto> known = william.searchPilots();
+
+        assertThat(known.stream().map(PilotSummaryDto::getName).toList(), containsInAnyOrder("testuser", "Louis"));
+    }
+
+    @Test
+    void searchPilotsIncludesAPilotFlownWithAsPilotInCommandOrCoPilot() {
+        HobbsClient william = createAuthenticatedClient();
+        UUID aircraftId = william.createAircraft(new CreateAircraftDto("G-ABCD", "Cessna", "152", "SINGLE_ENGINE")).getId();
+        william.createFlightEntry(aFlightEntry(william, aircraftId, null));
+
+        List<PilotSummaryDto> known = william.searchPilots();
+
+        assertThat(known.stream().map(PilotSummaryDto::getName).toList(),
+                containsInAnyOrder("testuser", "Instructor Smith"));
+    }
+
+    @Test
+    void searchPilotsExcludesPilotsUnrelatedToTheCaller() {
+        HobbsClient william = createAuthenticatedClient();
+        HobbsClient stranger = createAuthenticatedClient();
+        stranger.createPilot(new CreateUnclaimedPilotDto("Not Known To William"));
+
+        List<PilotSummaryDto> known = william.searchPilots();
+
+        assertThat(known.stream().map(PilotSummaryDto::getName).toList(), not(hasItem("Not Known To William")));
+    }
+
+    @Test
+    void searchPilotsFiltersByCaseInsensitiveNameSubstring() {
+        HobbsClient william = createAuthenticatedClient();
+        william.createPilot(new CreateUnclaimedPilotDto("Louis"));
+
+        assertThat(william.searchPilots("lou").stream().map(PilotSummaryDto::getName).toList(), contains("Louis"));
+        assertThat(william.searchPilots("zzz"), is(List.of()));
     }
 
     private CreateFlightEntryDto aFlightEntry(HobbsClient client, UUID aircraftId, UUID flightTrackId) {

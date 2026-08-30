@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -56,10 +57,36 @@ public class PilotEndpoint {
     }
 
     public void registerRoutes(JavalinConfig config) {
+        config.routes.get("pilot", this::searchPilots);
         config.routes.post("pilot", this::createPilot);
         config.routes.put("pilot/{pilotId}", this::updatePilot);
         config.routes.delete("pilot/{pilotId}", this::deletePilot);
         config.routes.post("pilot/{pilotId}/invite", this::inviteToClaim);
+    }
+
+    @OpenApi(
+        path = "/pilot",
+        methods = HttpMethod.GET,
+        summary = "Search pilots known to you",
+        description = "Returns pilots the caller may pick for a flight entry (as PIC or co-pilot): themselves, "
+                + "anyone they created via POST /pilot, or anyone they've logged a flight with as PIC or "
+                + "co-pilot. Privacy-scoped to the caller - not a global pilot list (see the admin-only "
+                + "GET /admin/pilots for that). Optional case-insensitive substring `search` on name; omitted "
+                + "or empty returns the caller's full known set.",
+        tags = {"Pilot"},
+        queryParams = @OpenApiParam(name = "search", type = String.class,
+                description = "Case-insensitive substring match on name"),
+        responses = {
+            @OpenApiResponse(status = "200", content = @OpenApiContent(from = PilotSummaryDto[].class))
+        }
+    )
+    private void searchPilots(Context context) {
+        PilotId callerId = context.attribute(SessionAuthFilter.AUTHENTICATED_PILOT_ID);
+        String search = context.queryParam("search");
+        List<PilotSummaryDto> results = pilots.searchKnownTo(callerId, search).stream()
+                .map(p -> new PilotSummaryDto(p.getId().value(), p.getName()))
+                .toList();
+        context.json(results);
     }
 
     @OpenApi(
