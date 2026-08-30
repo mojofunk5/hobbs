@@ -2,7 +2,10 @@ package com.bonney.hobbs.domain;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -20,6 +23,13 @@ public class Logbook {
      */
     public static final int MIN_AIRCRAFT_SEARCH_LENGTH = 2;
     private static final int MAX_AIRCRAFT_SEARCH_RESULTS = 50;
+
+    /**
+     * "Last N" distinct recently-flown airfields surfaced first on GET /airfield?search= - suggested
+     * value from docs/plans/airfield-picker.md's Confirmed decisions, flagged there as not confirmed
+     * and easy to tune later since it's not a schema decision.
+     */
+    static final int RECENT_AIRFIELD_LIMIT = 5;
 
     private final FlightEntryRepository flightEntryRepository;
     private final AircraftRepository aircraftRepository;
@@ -71,10 +81,37 @@ public class Logbook {
      * valid and returns the full GB set (alphabetical by name): ~1,200 rows is small enough that
      * this doesn't need aircraft's "must type 2+ characters" restriction (see
      * docs/plans/airfield-picker.md's Confirmed decisions).
+     *
+     * <p>Results are then re-ordered to put the calling pilot's own last {@link #RECENT_AIRFIELD_LIMIT}
+     * distinct flown airfields first (most recently flown first, deduped via
+     * {@link FlightEntryRepository#findRecentAirfieldIds}), everything else alphabetical after -
+     * applies whether {@code search} is empty or not, so typing "S" still surfaces a recently-flown
+     * Sherburn ahead of alphabetically-earlier matches. A recent airfield not present in the matched
+     * set (e.g. filtered out by {@code search}) is simply skipped, never appended outside the match.
      */
-    public List<Airfield> searchAirfields(String search) {
-        return search == null || search.isBlank()
+    public List<Airfield> searchAirfields(PilotId callerId, String search) {
+        List<Airfield> matches = search == null || search.isBlank()
                 ? airfieldRepository.findAll()
                 : airfieldRepository.search(search);
+
+        List<AirfieldId> recentAirfieldIds = flightEntryRepository.findRecentAirfieldIds(callerId, RECENT_AIRFIELD_LIMIT);
+        if (recentAirfieldIds.isEmpty()) {
+            return matches;
+        }
+
+        Map<AirfieldId, Airfield> remaining = new LinkedHashMap<>();
+        for (Airfield airfield : matches) {
+            remaining.put(airfield.getId(), airfield);
+        }
+
+        List<Airfield> ordered = new ArrayList<>();
+        for (AirfieldId recentId : recentAirfieldIds) {
+            Airfield airfield = remaining.remove(recentId);
+            if (airfield != null) {
+                ordered.add(airfield);
+            }
+        }
+        ordered.addAll(remaining.values());
+        return ordered;
     }
 }

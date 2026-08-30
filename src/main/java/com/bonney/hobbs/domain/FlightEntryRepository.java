@@ -2,9 +2,14 @@ package com.bonney.hobbs.domain;
 
 import com.bonney.hobbs.jooq.tables.records.FlightEntryRecord;
 import org.jooq.DSLContext;
+import org.jooq.Record2;
+import org.jooq.Result;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.bonney.hobbs.jooq.Tables.FLIGHT_ENTRY;
 
@@ -86,6 +91,41 @@ public class FlightEntryRepository {
                 .orderBy(FLIGHT_ENTRY.DATE.desc(), FLIGHT_ENTRY.DEPARTURE_TIME.desc())
                 .fetch()
                 .map(FlightEntryRepository::toFlightEntry);
+    }
+
+    /**
+     * Backs the recent-airfields ranking on GET /airfield?search= (see
+     * docs/plans/airfield-picker.md's chunk 5) - the calling pilot's own last {@code limit} distinct
+     * departure/arrival airfields, most recently flown first. Walks entries newest-first (same
+     * ordering as {@link #findAllByPilotId}) and collects both departure_airfield_id and
+     * arrival_airfield_id from each, deduplicating so a pilot who's flown the same airfield
+     * repeatedly in a row doesn't crowd out everywhere else they've been - counts *distinct*
+     * airfields, not flights. Entries with no airfield id set (every entry before the chunk 4
+     * migration landed, since there is no backfill) simply contribute nothing here.
+     */
+    public List<AirfieldId> findRecentAirfieldIds(PilotId pilotId, int limit) {
+        Result<Record2<UUID, UUID>> records = dsl
+                .select(FLIGHT_ENTRY.DEPARTURE_AIRFIELD_ID, FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID)
+                .from(FLIGHT_ENTRY)
+                .where(FLIGHT_ENTRY.PILOT_ID.eq(pilotId.value()))
+                .orderBy(FLIGHT_ENTRY.DATE.desc(), FLIGHT_ENTRY.DEPARTURE_TIME.desc())
+                .fetch();
+
+        Set<UUID> distinctIds = new LinkedHashSet<>();
+        for (Record2<UUID, UUID> record : records) {
+            if (distinctIds.size() >= limit) {
+                break;
+            }
+            UUID departureAirfieldId = record.value1();
+            UUID arrivalAirfieldId = record.value2();
+            if (departureAirfieldId != null) {
+                distinctIds.add(departureAirfieldId);
+            }
+            if (arrivalAirfieldId != null) {
+                distinctIds.add(arrivalAirfieldId);
+            }
+        }
+        return distinctIds.stream().limit(limit).map(AirfieldId::from).toList();
     }
 
     private static FlightEntry toFlightEntry(FlightEntryRecord record) {

@@ -141,27 +141,65 @@ class LogbookTest {
 
     @Test
     void searchAirfieldsDelegatesToTheRepositorySearchWhenSearchIsGiven() {
+        PilotId callerId = PilotId.random();
         List<Airfield> expected = List.of(anAirfield());
         when(airfieldRepository.search("sherburn")).thenReturn(expected);
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT)).thenReturn(List.of());
 
-        List<Airfield> result = logbook.searchAirfields("sherburn");
+        List<Airfield> result = logbook.searchAirfields(callerId, "sherburn");
 
         assertThat(result, is(expected));
     }
 
     @Test
     void searchAirfieldsReturnsFindAllWhenSearchIsNullOrBlank() {
+        PilotId callerId = PilotId.random();
         List<Airfield> expected = List.of(anAirfield());
         when(airfieldRepository.findAll()).thenReturn(expected);
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT)).thenReturn(List.of());
 
-        assertThat(logbook.searchAirfields(null), is(expected));
-        assertThat(logbook.searchAirfields(""), is(expected));
-        assertThat(logbook.searchAirfields("   "), is(expected));
+        assertThat(logbook.searchAirfields(callerId, null), is(expected));
+        assertThat(logbook.searchAirfields(callerId, ""), is(expected));
+        assertThat(logbook.searchAirfields(callerId, "   "), is(expected));
+    }
+
+    @Test
+    void searchAirfieldsPutsTheCallersRecentlyFlownAirfieldsFirst() {
+        PilotId callerId = PilotId.random();
+        Airfield sherburn = anAirfield(AirfieldId.random(), "EGCJ", "Sherburn-in-Elmet Airfield");
+        Airfield alpha = anAirfield(AirfieldId.random(), "EGAA", "Alpha Airfield");
+        Airfield leeds = anAirfield(AirfieldId.random(), "EGNM", "Leeds Bradford Airport");
+        // Alphabetically alpha, leeds, sherburn - but sherburn was flown most recently.
+        when(airfieldRepository.findAll()).thenReturn(List.of(alpha, leeds, sherburn));
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT))
+                .thenReturn(List.of(sherburn.getId()));
+
+        List<Airfield> result = logbook.searchAirfields(callerId, null);
+
+        assertThat(result, is(List.of(sherburn, alpha, leeds)));
+    }
+
+    @Test
+    void searchAirfieldsIgnoresARecentAirfieldNotPresentInTheMatchedSet() {
+        PilotId callerId = PilotId.random();
+        Airfield alpha = anAirfield(AirfieldId.random(), "EGAA", "Alpha Airfield");
+        AirfieldId notMatched = AirfieldId.random();
+        when(airfieldRepository.search("alpha")).thenReturn(List.of(alpha));
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT))
+                .thenReturn(List.of(notMatched));
+
+        List<Airfield> result = logbook.searchAirfields(callerId, "alpha");
+
+        assertThat(result, is(List.of(alpha)));
     }
 
     private Airfield anAirfield() {
-        return new Airfield(AirfieldId.random(), "EGCJ", "Sherburn-in-Elmet Airfield", "Sherburn-in-Elmet", "GB",
-                "GB-ENG", 53.7883, -1.2225, 26, "small_airport", "ourairports", "12345");
+        return anAirfield(AirfieldId.random(), "EGCJ", "Sherburn-in-Elmet Airfield");
+    }
+
+    private Airfield anAirfield(AirfieldId id, String icaoCode, String name) {
+        return new Airfield(id, icaoCode, name, "Somewhere", "GB", "GB-ENG", 53.7883, -1.2225, 26,
+                "small_airport", "ourairports", id.value().toString());
     }
 
     private FlightEntry aFlightEntry(FlightEntryId id) {
