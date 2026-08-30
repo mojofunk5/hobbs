@@ -91,24 +91,35 @@ class LogbookTest {
     }
 
     @Test
-    void searchAircraftDelegatesToTheRepositoryWithTheMaxResultsCap() {
+    void searchAircraftDelegatesToTheFullSearchByDefault() {
         List<Aircraft> expected = List.of(new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152",
                 EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null));
         when(aircraftRepository.search("abcd", 50)).thenReturn(expected);
 
-        List<Aircraft> result = logbook.searchAircraft("abcd");
+        List<Aircraft> result = logbook.searchAircraft("abcd", false);
+
+        assertThat(result, is(expected));
+    }
+
+    @Test
+    void searchAircraftDelegatesToRegistrationOnlySearchWhenRequested() {
+        List<Aircraft> expected = List.of(new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152",
+                EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null));
+        when(aircraftRepository.searchByRegistration("abcd", 50)).thenReturn(expected);
+
+        List<Aircraft> result = logbook.searchAircraft("abcd", true);
 
         assertThat(result, is(expected));
     }
 
     @Test
     void searchAircraftRejectsASearchShorterThanTheMinimumLength() {
-        assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft("a"));
+        assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft("a", false));
     }
 
     @Test
     void searchAircraftRejectsANullSearch() {
-        assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft(null));
+        assertThrows(InvalidAircraftSearchException.class, () -> logbook.searchAircraft(null, false));
     }
 
     private FlightEntry aFlightEntry(FlightEntryId id) {
