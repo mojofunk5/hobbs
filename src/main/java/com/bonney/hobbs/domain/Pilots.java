@@ -32,6 +32,10 @@ public class Pilots {
         return repository.findAllActivePage(sort, order, offset, limit);
     }
 
+    public List<Pilot> searchKnownTo(PilotId callerId, String search) {
+        return repository.findKnownTo(callerId, search);
+    }
+
     public int countActive() {
         return repository.countActive();
     }

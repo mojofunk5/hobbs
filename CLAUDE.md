@@ -148,11 +148,12 @@ real time would intermittently fail whenever a second ticks over mid-test.
   ([`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)) has `PilotId`/`AircraftId`/place
   entered as raw text - workable for one real user's worth of test data, not for real use. Split into
   three separate stories, since each has a different scoping/data-source question:
-  - **Picking a pilot you've flown with.** Design done -
-    [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md), not yet implemented. `Pilot` records
-    must be privacy-scoped by relationship (you only see someone if you created them or you've logged
-    a flight with them, plus yourself) - not a global list. Aircraft doesn't need this: it's already
-    modelled as shared across all pilots (see `AircraftEndpoint`'s doc comment).
+  - **Picking a pilot you've flown with.** Backend done - see
+    [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md): `GET /pilot?search=` returns pilots
+    privacy-scoped by relationship (you only see someone if you created them or you've logged a
+    flight with them, plus yourself) - not a global list. `hobbs-ui`'s picker widget (chunk 2 of the
+    plan) not yet built. Aircraft doesn't need this scoping: it's already modelled as shared across
+    all pilots (see `AircraftEndpoint`'s doc comment).
   - **Picking or registering an aircraft.** Not yet designed. No scoping question (aircraft are
     already global, `GET /aircraft` returns everyone's) - just needs a search-by-registration
     endpoint and a picker/create-inline UX in `hobbs-ui`, same shape as the pilot picker's UI half.
