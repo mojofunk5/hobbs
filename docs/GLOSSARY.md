@@ -43,6 +43,10 @@ own vocabulary. Alphabetical within each section.
 - **FlightTrack** - a raw GPS recording, stored as a single JSON blob, that can pre-fill a draft
   `FlightEntry`. Optional and never required - `flightTrackId` is nullable, and a manually-entered
   entry is exactly as valid as a GPS-derived one.
+- **Known pilot** - a `Pilot` visible to a given caller in the pilot picker: themselves, anyone they
+  created (`created_by`), or anyone they've logged a flight with as PIC or co-pilot. Privacy-scoped
+  deliberately - the pilot table as a whole is never listable by a non-admin. See
+  [`docs/plans/pilot-picker.md`](plans/pilot-picker.md).
 - **Pilot** - someone recordable on a flight (as the entry's owner, as PIC, or - once built - as
   co-pilot); just `id`/`name`/`created_by`. Not the same as an **Account** - a `Pilot` can exist
   without one (see **Unclaimed pilot**).
