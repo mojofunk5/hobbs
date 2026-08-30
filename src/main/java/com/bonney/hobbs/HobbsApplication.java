@@ -52,6 +52,7 @@ import org.jooq.impl.DSL;
 import org.jooq.tools.jdbc.JDBCUtils;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -78,6 +79,16 @@ public class HobbsApplication {
      * registers a pilot (i.e. most of the integration suite) needing a working mail server.
      */
     public HobbsApplication(int port, AppConfig config, EmailSender emailSender) {
+        this(port, config, emailSender, Clock.systemUTC());
+    }
+
+    /**
+     * Overload taking an explicit {@link Clock}, threaded into {@link FailedAttemptRepository} - lets
+     * a test fix "now" so a login/password-reset throttle assertion doesn't race the real wall clock
+     * (same reasoning as {@link RateLimitRepository}'s own injectable {@code Clock}). Every other
+     * caller, including the other constructors here, gets the real {@code Clock.systemUTC()}.
+     */
+    public HobbsApplication(int port, AppConfig config, EmailSender emailSender, Clock clock) {
         this.dataSource = createDataSource(config);
 
         // jOOQ's code generator introspects the schema via an in-memory H2 instance (see the
@@ -98,7 +109,7 @@ public class HobbsApplication {
         PasswordResetCodeRepository passwordResetCodeRepository = new PasswordResetCodeRepository(dsl);
         PasswordHasher passwordHasher = new PasswordHasher();
         this.adminBootstrap = new AdminBootstrap(adminRepository);
-        FailedAttemptRepository failedAttemptRepository = new FailedAttemptRepository(dsl);
+        FailedAttemptRepository failedAttemptRepository = new FailedAttemptRepository(dsl, clock);
         Auth auth = new Auth(pilots, accounts, authIdentityRepository, sessions, passwordHasher,
                 adminBootstrap, adminRepository, referralCodeRepository, failedAttemptRepository,
                 config.loginThrottleMaxAttempts(), Duration.ofMinutes(config.loginThrottleWindowMinutes()));

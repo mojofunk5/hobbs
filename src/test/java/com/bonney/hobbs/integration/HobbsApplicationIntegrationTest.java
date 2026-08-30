@@ -31,8 +31,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -63,16 +66,37 @@ class HobbsApplicationIntegrationTest {
 
     @BeforeEach
     void before() {
+        Fixture fx = createFixture(Clock.systemUTC());
+        application = fx.application();
+        httpClient = fx.httpClient();
+        emailSender = fx.emailSender();
+        adminClient = fx.adminClient();
+    }
+
+    // Groups everything a fresh, isolated application instance needs (its own H2 database, its own
+    // ephemeral port, its own bootstrapped admin) behind one Clock parameter - used directly by
+    // before() with the real Clock.systemUTC(), and by the throttle-window tests below with a fixed
+    // Clock instead, so their repeated-failure loop can't flake by straddling a real window boundary
+    // (see FailedAttemptRepository's own injectable Clock for why - same reasoning as
+    // RateLimitRepositoryTest already applies at the unit level).
+    private record Fixture(HobbsApplication application, OkHttpClient httpClient, HobbsClient adminClient,
+                            RecordingEmailSender emailSender) {
+    }
+
+    private Fixture createFixture(Clock clock) {
         String dbUrl = "jdbc:h2:mem:test-" + UUID.randomUUID() + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
         AppConfig config = new AppConfig(dbUrl, "sa", "", 10_000, true, 24, null, false,
                 null, 587, null, null, null, "http://localhost:5173", 168, 30, 10, 15, 5, 15);
         HobbsApplication.migrate(config);
-        emailSender = new RecordingEmailSender();
-        application = new HobbsApplication(0, config, emailSender);
-        httpClient = new OkHttpClient.Builder().build();
-        String bootstrapCode = application.getAdminBootstrap().getBootstrapCode();
-        SessionDto adminSession = createClient().register(new RegisterDto("admin", "admin@test.com", "Password123", bootstrapCode));
-        adminClient = createAuthenticatedClient(adminSession.getSessionId());
+        RecordingEmailSender fixtureEmailSender = new RecordingEmailSender();
+        HobbsApplication fixtureApplication = new HobbsApplication(0, config, fixtureEmailSender, clock);
+        OkHttpClient fixtureHttpClient = new OkHttpClient.Builder().build();
+        String bootstrapCode = fixtureApplication.getAdminBootstrap().getBootstrapCode();
+        HobbsClient bootstrapClient = HobbsClient.create("http://localhost:" + fixtureApplication.getPort(), fixtureHttpClient);
+        SessionDto adminSession = bootstrapClient.register(new RegisterDto("admin", "admin@test.com", "Password123", bootstrapCode));
+        HobbsClient fixtureAdminClient = HobbsClient.withAuth(
+                "http://localhost:" + fixtureApplication.getPort(), fixtureHttpClient, adminSession.getSessionId());
+        return new Fixture(fixtureApplication, fixtureHttpClient, fixtureAdminClient, fixtureEmailSender);
     }
 
     @AfterEach
@@ -209,6 +233,12 @@ class HobbsApplicationIntegrationTest {
         return createClient().register(new RegisterDto(name, email, password, code));
     }
 
+    private SessionDto register(Fixture fx, String name, String email, String password) {
+        String code = fx.adminClient().invitePilot(new InvitePilotDto(email, name)).getCode();
+        HobbsClient client = HobbsClient.create("http://localhost:" + fx.application().getPort(), fx.httpClient());
+        return client.register(new RegisterDto(name, email, password, code));
+    }
+
     private HobbsClient createClient() {
         int port = application.getPort();
         return HobbsClient.create("http://localhost:" + port, httpClient);
@@ -271,19 +301,29 @@ class HobbsApplicationIntegrationTest {
 
     @Test
     void confirmPasswordResetIsThrottledAfterRepeatedFailuresEvenWithTheCorrectCodeAfterwards() {
-        register("Reset", "reset-throttle@example.com", "OldPassword1");
-        createClient().requestPasswordReset(new PasswordResetRequestDto("reset-throttle@example.com"));
-        String code = extractResetCode("reset-throttle@example.com");
+        // A fixed Clock, not the shared before()/application - the throttle window is 15 minutes, so
+        // this can't be a real-time race the way a one-second window would be, but the window is
+        // still epoch-aligned rather than relative to the test's own start, so it's not impossible
+        // for these calls to straddle a real boundary purely by chance. Fixing "now" removes that
+        // possibility entirely rather than just making it rarer - see FailedAttemptRepository's Clock.
+        Fixture fx = createFixture(Clock.fixed(Instant.now(), ZoneOffset.UTC));
+        try {
+            register(fx, "Reset", "reset-throttle@example.com", "OldPassword1");
+            createClient(fx).requestPasswordReset(new PasswordResetRequestDto("reset-throttle@example.com"));
+            String code = extractResetCode(fx.emailSender(), "reset-throttle@example.com");
 
-        for (int i = 0; i < 5; i++) {
-            assertThrows(FeignException.BadRequest.class, () -> createClient().confirmPasswordReset(
-                    new PasswordResetConfirmDto("reset-throttle@example.com", "000000", "NewPassword1")));
+            for (int i = 0; i < 5; i++) {
+                assertThrows(FeignException.BadRequest.class, () -> createClient(fx).confirmPasswordReset(
+                        new PasswordResetConfirmDto("reset-throttle@example.com", "000000", "NewPassword1")));
+            }
+
+            // The email is now throttled - even the genuinely correct code is rejected, proving this
+            // is throttling and not just repeated wrong-code failures.
+            assertThrows(FeignException.BadRequest.class, () -> createClient(fx).confirmPasswordReset(
+                    new PasswordResetConfirmDto("reset-throttle@example.com", code, "NewPassword1")));
+        } finally {
+            fx.application().stop();
         }
-
-        // The email is now throttled - even the genuinely correct code is rejected, proving this
-        // is throttling and not just repeated wrong-code failures.
-        assertThrows(FeignException.BadRequest.class, () -> createClient().confirmPasswordReset(
-                new PasswordResetConfirmDto("reset-throttle@example.com", code, "NewPassword1")));
     }
 
     @Test
@@ -425,17 +465,24 @@ class HobbsApplicationIntegrationTest {
 
     @Test
     void loginIsThrottledAfterRepeatedFailuresEvenWithTheCorrectPasswordAfterwards() {
-        register("Alice", "alice-throttle@example.com", "Password123");
+        // Fixed Clock - see confirmPasswordResetIsThrottledAfterRepeatedFailuresEvenWithTheCorrectCodeAfterwards's
+        // comment for why this can't just reuse the shared before()/application fixture.
+        Fixture fx = createFixture(Clock.fixed(Instant.now(), ZoneOffset.UTC));
+        try {
+            register(fx, "Alice", "alice-throttle@example.com", "Password123");
 
-        for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 10; i++) {
+                assertThrows(FeignException.Unauthorized.class,
+                        () -> createClient(fx).login(new LoginDto("alice-throttle@example.com", "wrongpassword")));
+            }
+
+            // The identifier is now throttled - even the genuinely correct password is rejected,
+            // proving this is throttling and not just repeated wrong-password failures.
             assertThrows(FeignException.Unauthorized.class,
-                    () -> createClient().login(new LoginDto("alice-throttle@example.com", "wrongpassword")));
+                    () -> createClient(fx).login(new LoginDto("alice-throttle@example.com", "Password123")));
+        } finally {
+            fx.application().stop();
         }
-
-        // The identifier is now throttled - even the genuinely correct password is rejected,
-        // proving this is throttling and not just repeated wrong-password failures.
-        assertThrows(FeignException.Unauthorized.class,
-                () -> createClient().login(new LoginDto("alice-throttle@example.com", "Password123")));
     }
 
     @Test
@@ -446,16 +493,23 @@ class HobbsApplicationIntegrationTest {
 
     @Test
     void loginThrottleIsPerIdentifierNotGlobal() {
-        register("Alice", "alice-noise@example.com", "Password123");
-        register("Bob", "bob-unaffected@example.com", "Password123");
+        // Fixed Clock - see confirmPasswordResetIsThrottledAfterRepeatedFailuresEvenWithTheCorrectCodeAfterwards's
+        // comment for why this can't just reuse the shared before()/application fixture.
+        Fixture fx = createFixture(Clock.fixed(Instant.now(), ZoneOffset.UTC));
+        try {
+            register(fx, "Alice", "alice-noise@example.com", "Password123");
+            register(fx, "Bob", "bob-unaffected@example.com", "Password123");
 
-        for (int i = 0; i < 10; i++) {
-            assertThrows(FeignException.Unauthorized.class,
-                    () -> createClient().login(new LoginDto("alice-noise@example.com", "wrongpassword")));
+            for (int i = 0; i < 10; i++) {
+                assertThrows(FeignException.Unauthorized.class,
+                        () -> createClient(fx).login(new LoginDto("alice-noise@example.com", "wrongpassword")));
+            }
+
+            SessionDto session = createClient(fx).login(new LoginDto("bob-unaffected@example.com", "Password123"));
+            assertThat(session.getSessionId(), is(notNullValue()));
+        } finally {
+            fx.application().stop();
         }
-
-        SessionDto session = createClient().login(new LoginDto("bob-unaffected@example.com", "Password123"));
-        assertThat(session.getSessionId(), is(notNullValue()));
     }
 
     @Test
@@ -920,7 +974,11 @@ class HobbsApplicationIntegrationTest {
     }
 
     private String extractResetCode(String email) {
-        RecordingEmailSender.SentEmail lastSent = emailSender.getSent().stream()
+        return extractResetCode(emailSender, email);
+    }
+
+    private String extractResetCode(RecordingEmailSender fixtureEmailSender, String email) {
+        RecordingEmailSender.SentEmail lastSent = fixtureEmailSender.getSent().stream()
                 .filter(sent -> sent.toAddress().equals(email))
                 .reduce((first, second) -> second)
                 .orElseThrow();
@@ -929,5 +987,9 @@ class HobbsApplicationIntegrationTest {
             throw new IllegalStateException("No password reset code found in email to " + email);
         }
         return matcher.group(1);
+    }
+
+    private HobbsClient createClient(Fixture fx) {
+        return HobbsClient.create("http://localhost:" + fx.application().getPort(), fx.httpClient());
     }
 }
