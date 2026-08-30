@@ -34,11 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Exercises the full stack (real Javalin server, in-memory H2 PostgreSQL-mode database) end to end
  * via HobbsClient. Covers the admin subsystem: pilot list/invite/disable/delete/expire-sessions/
- * cancel-invite. Health, version, OpenAPI, aircraft, flight-entry, pilot, and auth coverage moved to
- * their own <Endpoint>EndpointIntegrationTest classes - see
- * docs/plans/split-integration-test-by-endpoint.md.
+ * cancel-invite. The last of the endpoint splits - see docs/plans/split-integration-test-by-endpoint.md
+ * for the full history; Health/Aircraft/FlightEntry/Pilot/Auth coverage now live in their own
+ * <Endpoint>EndpointIntegrationTest classes, and this class replaces the original
+ * HobbsApplicationIntegrationTest that once held all of them.
  */
-class HobbsApplicationIntegrationTest extends AbstractIntegrationTest {
+class AdminEndpointIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void anAdminCanInviteAPilotWhoThenRegistersWithThatCode() {
