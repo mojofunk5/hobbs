@@ -46,7 +46,8 @@ public class Logbook {
     }
 
     public Aircraft createAircraft(String registration, String make, String model, EngineCategory engineCategory) {
-        Aircraft aircraft = new Aircraft(AircraftId.random(), registration, make, model, engineCategory);
+        Aircraft aircraft = new Aircraft(AircraftId.random(), registration, make, model, engineCategory,
+                null, null, null, null, null, null, null, null);
         aircraftRepository.save(aircraft);
         return aircraft;
     }

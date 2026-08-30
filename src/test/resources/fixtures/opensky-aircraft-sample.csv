@@ -1,0 +1,6 @@
+icao24,registration,manufacturericao,manufacturername,model,typecode,serialnumber,icaoaircrafttype,operator,owner,built,engines,categoryDescription
+400123,G-ABCD,CES,Cessna,152,C152,15280001,L1P,Acme Flying Club,Acme Ltd,1978,1 Lycoming O-235,Landplane
+400456,G-WXYZ,PIP,Piper,PA-28,PA28,281234,L1P,,,1985,,Landplane
+400789,G-TWIN,PIP,Piper,PA-34 Seneca,PA34,341234,L2P,Charter Co,,1990,2 Continental TSIO-360,Landplane
+400999,G-NOENG,BEE,Beechcraft,King Air 350,BE30,,,,,,,
+400111,,CES,Cessna,172,C172,17280001,L1P,,,1970,,Landplane
