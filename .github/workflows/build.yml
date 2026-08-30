@@ -222,13 +222,15 @@ jobs:
       - uses: actions/checkout@v7
 
       # The jar is already built (see the build job's "Upload jar" step) - the Dockerfile just
-      # packages it now, no Gradle/JDK involved in this job at all. Downloaded into the same
-      # build/libs/ path the build job's own Gradle invocation would have produced it at, matching
-      # what the Dockerfile's COPY expects.
+      # packages it now, no Gradle/JDK involved in this job at all. Downloaded to the repo root, not
+      # build/libs/ - .dockerignore excludes `build` wholesale (a leftover from when the old Dockerfile
+      # did its own COPY . . and needed the whole compiled output kept out of the image), which broke
+      # the very first real run of this: `COPY build/libs/....jar` failed with "not found" because
+      # BuildKit silently skips a file under an ignored directory. Simpler to land the jar somewhere
+      # never excluded than to fight dockerignore's gitignore-style negation-pattern semantics.
       - uses: actions/download-artifact@v8
         with:
           name: app-jar
-          path: build/libs
 
       # Needed for cache-from/cache-to: type=gha below - that cache backend requires the
       # docker-container Buildx driver, not the default docker driver build-push-action falls back

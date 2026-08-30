@@ -9,7 +9,9 @@
 # docs/CI_PERFORMANCE.md.
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-COPY build/libs/hobbs-0.0.1-SNAPSHOT-all.jar app.jar
+# Downloaded to the repo root by build.yml's download-artifact step, not build/libs/ - .dockerignore
+# excludes build wholesale, which silently broke this path on the very first real run.
+COPY hobbs-0.0.1-SNAPSHOT-all.jar app.jar
 # Baked in at build time so GET /version reflects the actual image running, regardless of how it's
 # deployed - not passed as a docker-compose runtime env var, which would depend on the deploy script
 # wiring it through correctly every time.
