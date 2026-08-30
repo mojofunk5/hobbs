@@ -2,6 +2,15 @@ name: Java CI with Gradle
 
 on:
   push:
+    # Skip the whole workflow - Java build/test *and*, on master, the full Docker rebuild/push/VPS
+    # redeploy - when every changed file is documentation. paths-ignore only skips the run when ALL
+    # changed files match, so a commit that touches CLAUDE.md/README.md alongside real code (our own
+    # "keep docs in sync" practice) still runs normally - only a genuinely docs-only commit (like our
+    # doc-PR-first plan docs) is skipped. No branch protection/required status checks on this repo
+    # (see CLAUDE.md's Working Practices) to worry about blocking a merge either.
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
 
 permissions:
   contents: write
