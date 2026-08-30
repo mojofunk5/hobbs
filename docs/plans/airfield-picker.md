@@ -75,18 +75,18 @@ Checked what's actually available before designing against it:
   - Dropped from the source data as not logbook-relevant: `continent`, `scheduled_service`,
     `iata_code`, `gps_code` (redundant with `icaoCode` for essentially all GB rows), `home_link`,
     `wikipedia_link`, `keywords`.
-- **Picker searches by name or ICAO code, pre-filled with the pilot's usual airfield.** Confirmed
-  2026-08-30 (revised from an earlier "single default dropdown" draft): even with William flying out
-  of one airfield today, a lookup a pilot can actually type - "Sherburn" or "EGCJ" - is the real
-  requirement, not just a default selection. `GET /airfield?search=` does a case-insensitive
-  substring match against `name` and an exact/prefix match against `icaoCode` (matches OurAirports'
-  own `ident`/`gps_code`/`local_code` convention of using the ICAO code as the primary identifier),
-  combined in one query rather than two separate fields in the UI. Given ~1,200 active GB rows -
-  small enough that an empty `search` can reasonably return the full set (same shape as the pilot
-  picker's empty-search behaviour, unlike aircraft's "must type 2+ characters" restriction driven by
-  its ~600k-row scale). The `hobbs-ui` picker still pre-fills/pre-selects Sherburn-in-Elmet (`EGCJ`)
-  as the likely answer, but typing to search and pick a different one works from day one rather than
-  being deferred.
+- **Picker searches by name or ICAO code - no pre-filled default.** Confirmed 2026-08-30 (revised
+  from an earlier "single default dropdown" draft): a lookup a pilot can actually type - "Sherburn"
+  or "EGCJ" - is the real requirement, not a default selection. `GET /airfield?search=` does a
+  case-insensitive substring match against `name` and an exact/prefix match against `icaoCode`
+  (matches OurAirports' own `ident`/`gps_code`/`local_code` convention of using the ICAO code as the
+  primary identifier), combined in one query rather than two separate fields in the UI. Given ~1,200
+  active GB rows - small enough that an empty `search` can reasonably return the full set (same shape
+  as the pilot picker's empty-search behaviour, unlike aircraft's "must type 2+ characters"
+  restriction driven by its ~600k-row scale). **No airfield is pre-filled or pre-selected in the
+  `hobbs-ui` picker, including Sherburn-in-Elmet** - Andy's explicit call (2026-08-30): William is
+  being used as a guide for what to build first, but Hobbs itself isn't a William-only logbook, and a
+  hardcoded default would bake that assumption into the UI for every pilot who ever uses it.
 
 ## Open questions (for review on this doc, before implementation)
 
@@ -115,8 +115,7 @@ Per `CLAUDE.md`'s "keep PRs small" rule:
 4. **`FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId` migration** - expand/backfill/
    contract sequence per the open question above. Likely its own sub-plan given the data-safety
    constraint, not a single PR.
-5. **`hobbs-ui`** - picker widget (search-as-you-type by name/code, pre-filled with
-   Sherburn-in-Elmet).
+5. **`hobbs-ui`** - picker widget (search-as-you-type by name/code, no pre-filled default).
 
 ## Explicitly out of scope (left for later)
 
