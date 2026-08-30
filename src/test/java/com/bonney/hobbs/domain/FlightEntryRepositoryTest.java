@@ -26,6 +26,8 @@ class FlightEntryRepositoryTest {
     private PilotId instructorPilotId;
     private AircraftId aircraftId;
     private AirfieldId airfieldId;
+    private AirfieldId secondAirfieldId;
+    private AirfieldId thirdAirfieldId;
 
     @BeforeEach
     void setUp() {
@@ -53,10 +55,21 @@ class FlightEntryRepositoryTest {
         new AircraftRepository(dsl).save(aircraft);
         aircraftId = aircraft.getId();
 
+        AirfieldRepository airfieldRepository = new AirfieldRepository(dsl);
         Airfield airfield = new Airfield(AirfieldId.random(), "EGCM", "Manchester Barton Airport", "Manchester",
                 "GB", "GB-ENG", 53.4694, -2.3803, 79, "small_airport", "ourairports", "1");
-        new AirfieldRepository(dsl).save(airfield);
+        airfieldRepository.save(airfield);
         airfieldId = airfield.getId();
+
+        Airfield secondAirfield = new Airfield(AirfieldId.random(), "EGCJ", "Sherburn-in-Elmet Airfield",
+                "Sherburn-in-Elmet", "GB", "GB-ENG", 53.7883, -1.2225, 26, "small_airport", "ourairports", "2");
+        airfieldRepository.save(secondAirfield);
+        secondAirfieldId = secondAirfield.getId();
+
+        Airfield thirdAirfield = new Airfield(AirfieldId.random(), "EGNM", "Leeds Bradford Airport", "Leeds",
+                "GB", "GB-ENG", 53.8659, -1.6606, 681, "medium_airport", "ourairports", "3");
+        airfieldRepository.save(thirdAirfield);
+        thirdAirfieldId = thirdAirfield.getId();
     }
 
     @Test
@@ -147,6 +160,75 @@ class FlightEntryRepositoryTest {
         List<FlightEntry> found = repository.findAllByPilotId(otherPilot.getId());
 
         assertThat(found.stream().map(FlightEntry::getId).toList(), contains(othersEntry.getId()));
+    }
+
+    @Test
+    void findRecentAirfieldIdsReturnsDistinctIdsMostRecentlyFlownFirst() {
+        // Most recent flight is Manchester -> Sherburn; oldest is Sherburn -> Leeds.
+        repository.save(entryWithAirfields(LocalDate.of(2026, 8, 1), "2026-08-01T09:00:00Z",
+                secondAirfieldId, thirdAirfieldId));
+        repository.save(entryWithAirfields(LocalDate.of(2026, 8, 24), "2026-08-24T09:00:00Z",
+                airfieldId, secondAirfieldId));
+
+        List<AirfieldId> recent = repository.findRecentAirfieldIds(pilotId, 5);
+
+        assertThat(recent, contains(airfieldId, secondAirfieldId, thirdAirfieldId));
+    }
+
+    @Test
+    void findRecentAirfieldIdsDoesNotCountTheSameAirfieldTwiceForRepeatedCircuits() {
+        // A pilot who's flown the same airfield ten times in a row shouldn't crowd out everywhere
+        // else they've been - this counts distinct airfields, not flights.
+        for (int i = 0; i < 3; i++) {
+            repository.save(entryWithAirfields(LocalDate.of(2026, 8, 20 + i), "2026-08-2" + i + "T09:00:00Z",
+                    airfieldId, airfieldId));
+        }
+        repository.save(entryWithAirfields(LocalDate.of(2026, 8, 1), "2026-08-01T09:00:00Z",
+                secondAirfieldId, thirdAirfieldId));
+
+        List<AirfieldId> recent = repository.findRecentAirfieldIds(pilotId, 5);
+
+        assertThat(recent, contains(airfieldId, secondAirfieldId, thirdAirfieldId));
+    }
+
+    @Test
+    void findRecentAirfieldIdsIsCappedAtTheGivenLimit() {
+        repository.save(entryWithAirfields(LocalDate.of(2026, 8, 24), "2026-08-24T09:00:00Z",
+                airfieldId, secondAirfieldId));
+        repository.save(entryWithAirfields(LocalDate.of(2026, 8, 1), "2026-08-01T09:00:00Z",
+                secondAirfieldId, thirdAirfieldId));
+
+        List<AirfieldId> recent = repository.findRecentAirfieldIds(pilotId, 2);
+
+        assertThat(recent, contains(airfieldId, secondAirfieldId));
+    }
+
+    @Test
+    void findRecentAirfieldIdsIgnoresEntriesWithNoAirfieldIdSet() {
+        // Every entry from before the chunk 4 migration landed - no backfill, per
+        // docs/plans/airfield-picker.md's Open questions and docs/DECISIONS.md.
+        repository.save(anEntry(LocalDate.now(), "2026-08-24T10:00:00Z", "2026-08-24T10:30:00Z"));
+
+        assertThat(repository.findRecentAirfieldIds(pilotId, 5), is(List.of()));
+    }
+
+    @Test
+    void findRecentAirfieldIdsIsScopedToTheGivenPilot() {
+        Pilot otherPilot = new Pilot(PilotId.random(), "Someone Else", null);
+        new PilotRepository(dsl).save(otherPilot);
+        FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
+                LocalDate.now(), "EGCM", OffsetDateTime.now(), "EGCM", OffsetDateTime.now(), airfieldId,
+                secondAirfieldId, otherPilot.getId(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+        repository.save(othersEntry);
+
+        assertThat(repository.findRecentAirfieldIds(pilotId, 5), is(List.of()));
+    }
+
+    private FlightEntry entryWithAirfields(LocalDate date, String departureTime, AirfieldId departureAirfieldId,
+                                            AirfieldId arrivalAirfieldId) {
+        return new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date, "PLACE",
+                OffsetDateTime.parse(departureTime), "PLACE", OffsetDateTime.parse(departureTime).plusMinutes(30),
+                departureAirfieldId, arrivalAirfieldId, pilotId, null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 
     private FlightEntry anEntry(LocalDate date, String departureTime, String arrivalTime) {

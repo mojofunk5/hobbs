@@ -1,6 +1,8 @@
 package com.bonney.hobbs.endpoint;
 
+import com.bonney.hobbs.SessionAuthFilter;
 import com.bonney.hobbs.domain.Logbook;
+import com.bonney.hobbs.domain.PilotId;
 import com.bonney.hobbs.dto.AirfieldDto;
 import com.bonney.hobbs.mapper.AirfieldMapper;
 import io.javalin.config.JavalinConfig;
@@ -30,7 +32,9 @@ public class AirfieldEndpoint {
                 + "no POST /airfield. `search` matches a case-insensitive substring of name OR an exact/prefix "
                 + "match of icaoCode, combined in one query. Unlike GET /aircraft?search=, `search` is optional - "
                 + "against the ~1,200-row GB-only imported set, an empty or missing search reasonably returns "
-                + "everything, ordered alphabetically by name.",
+                + "everything. Results are ordered with the calling pilot's own last 5 distinct recently-flown "
+                + "airfields first (most recent first, deduped), everything else alphabetical by name after - "
+                + "applies whether search is empty or not.",
         tags = {"Airfield"},
         queryParams = @OpenApiParam(name = "search", type = String.class,
                 description = "Case-insensitive substring match on name, or exact/prefix match on icaoCode"),
@@ -39,8 +43,9 @@ public class AirfieldEndpoint {
         }
     )
     private void searchAirfields(Context context) {
+        PilotId callerId = context.attribute(SessionAuthFilter.AUTHENTICATED_PILOT_ID);
         String search = context.queryParam("search");
-        List<AirfieldDto> airfields = logbook.searchAirfields(search).stream()
+        List<AirfieldDto> airfields = logbook.searchAirfields(callerId, search).stream()
                 .map(AirfieldMapper::toAirfieldDto)
                 .toList();
         context.json(airfields);

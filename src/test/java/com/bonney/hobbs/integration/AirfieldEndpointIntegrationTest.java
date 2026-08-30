@@ -2,8 +2,13 @@ package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
 import com.bonney.hobbs.dto.AirfieldDto;
+import com.bonney.hobbs.dto.CreateFlightEntryDto;
+import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -73,6 +78,56 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(pilot.searchAirfields("SHERBURN").stream().map(AirfieldDto::getId).toList(),
                 containsInAnyOrder(sherburn, sherburnHouse));
+    }
+
+    @Test
+    void recentlyFlownAirfieldsAppearFirstEvenWhenAlphabeticallyLater() {
+        HobbsClient pilot = createAuthenticatedClient();
+        UUID alpha = seedAirfield("EGAA", "Alpha Airfield");
+        UUID zulu = seedAirfield("EGZZ", "Zulu Airfield");
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24), "EGZZ",
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), "EGZZ", OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        List<UUID> ids = pilot.searchAirfields().stream().map(AirfieldDto::getId).toList();
+
+        assertThat(ids, contains(zulu, alpha));
+    }
+
+    @Test
+    void recentlyFlownAirfieldsRankingAppliesEvenWithASearchTerm() {
+        HobbsClient pilot = createAuthenticatedClient();
+        UUID alpha = seedAirfield("EGAA", "Alpha Sherburn Airfield");
+        UUID zulu = seedAirfield("EGZZ", "Zulu Sherburn Airfield");
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24), "EGZZ",
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), "EGZZ", OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        List<UUID> ids = pilot.searchAirfields("sherburn").stream().map(AirfieldDto::getId).toList();
+
+        assertThat(ids, contains(zulu, alpha));
+    }
+
+    @Test
+    void recentAirfieldsAreScopedToTheCallingPilot() {
+        HobbsClient first = createAuthenticatedClient();
+        HobbsClient second = createAuthenticatedClient();
+        UUID alpha = seedAirfield("EGAA", "Alpha Airfield");
+        UUID zulu = seedAirfield("EGZZ", "Zulu Airfield");
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24), "EGZZ",
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), "EGZZ", OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        // second never flew anywhere, so their results stay plain alphabetical.
+        List<UUID> ids = second.searchAirfields().stream().map(AirfieldDto::getId).toList();
+
+        assertThat(ids, contains(alpha, zulu));
     }
 
     @Test
