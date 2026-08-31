@@ -8,11 +8,11 @@ did it - the file itself doesn't change shape or lose content, it just moves. `d
 parent folder) becomes, by construction, the list of what's designed but not yet fully built - `ls
 docs/plans/*.md` answers "what's in flight" without reading every file's `Status:` line.
 
-Nothing currently in `docs/plans/done/` yet - the plan docs that were already implemented before
-this convention existed (`logbook-entries.md`, `pilot-account-split.md`, `aircraft-picker.md`,
-`pilot-picker.md`, `airfield-picker.md`, `split-integration-test-by-endpoint.md`,
-`picker-recent-endpoints.md`, `new-entry-context-endpoint.md`) were deliberately left in place rather
-than bulk-moved retroactively, to avoid a large mechanical PR rewriting every cross-reference to them
-(including `hobbs-ui` doc links by full GitHub URL) at once. They'll migrate here individually,
-opportunistically, whenever a PR is already touching one of them for another reason - or as a
-dedicated cleanup PR, if one's ever worth doing on its own.
+The eight plan docs that were already implemented before this convention existed
+(`logbook-entries.md`, `pilot-account-split.md`, `aircraft-picker.md`, `pilot-picker.md`,
+`airfield-picker.md`, `split-integration-test-by-endpoint.md`, `picker-recent-endpoints.md`,
+`new-entry-context-endpoint.md`) were initially left in `docs/plans/` rather than bulk-moved, to
+avoid a large mechanical PR rewriting every cross-reference to them at once. That bulk move (and the
+matching one in `hobbs-ui`) happened on 2026-08-31, once every cross-reference - other plan docs,
+`CLAUDE.md`, `README.md`, `docs/GLOSSARY.md`, `docs/DECISIONS.md`, and `hobbs-ui`'s doc links by full
+GitHub URL - had been checked and fixed up in the same change.

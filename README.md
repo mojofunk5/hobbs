@@ -73,7 +73,7 @@ admin/password-reset subsystem (unit tests plus end-to-end integration tests, on
 - `HealthEndpointIntegrationTest`, `AircraftEndpointIntegrationTest`, `FlightEntryEndpointIntegrationTest`,
 `PilotEndpointIntegrationTest`, `AuthEndpointIntegrationTest`, `AdminEndpointIntegrationTest` - sharing
 fixture setup via `AbstractIntegrationTest`; see
-[`docs/plans/split-integration-test-by-endpoint.md`](docs/plans/split-integration-test-by-endpoint.md)),
+[`docs/plans/done/split-integration-test-by-endpoint.md`](docs/plans/done/split-integration-test-by-endpoint.md)),
 covering register/login, admin/referral-code flows, and the 401/403/404 auth-boundary cases, plus
 tests for the flight domain - `LogbookTest` (mocked repositories), `AircraftRepositoryTest`,
 `FlightEntryRepositoryTest`, `FlightTrackRepositoryTest`, `SimulatorSessionRepositoryTest` (real H2
@@ -112,9 +112,9 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
 - **Account** - the login/email/enabled-state half of a `Pilot`, one-to-one with a `Pilot` via
   `pilot_id`. A `Pilot` has an account iff a matching `Account` row exists; a `Pilot` with none is an
   "unclaimed" record, e.g. a co-pilot logged before they'd signed up. See
-  [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md) for the full design.
+  [`docs/plans/done/pilot-account-split.md`](docs/plans/done/pilot-account-split.md) for the full design.
 - **Aircraft** - reference data seeded from OpenSky's aircraftDatabase.csv
-  ([`docs/plans/aircraft-picker.md`](docs/plans/aircraft-picker.md)), not pilot-submitted - there is no
+  ([`docs/plans/done/aircraft-picker.md`](docs/plans/done/aircraft-picker.md)), not pilot-submitted - there is no
   `POST /aircraft`. registration/make/model plus engine category (derived from OpenSky's
   `icaoaircrafttype` where parseable, else `null`) and a handful of nullable OpenSky reference fields
   (manufacturer ICAO code, type code, serial number, operator, owner, built year, engines,
@@ -123,7 +123,7 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   flight-entry aircraft picker and the Browse Aircraft page in `hobbs-ui`. `GET /aircraft/recent`
   returns the calling pilot's own last 5 distinct flown aircraft, most recently flown first - a
   right-sized on-focus browse for the picker (see
-  [`docs/plans/picker-recent-endpoints.md`](docs/plans/picker-recent-endpoints.md)).
+  [`docs/plans/done/picker-recent-endpoints.md`](docs/plans/done/picker-recent-endpoints.md)).
 - **FlightEntry** - one row of the logbook: date, departure/arrival (each an `AirfieldId` + time -
   see **Airfield** below; no free-text place field), `pilotInCommandId`/`coPilotId` (both `PilotId`s -
   see `docs/GLOSSARY.md`'s **PIC** entry for how the PIC can differ from the entry's owner), and
@@ -132,18 +132,18 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   float hours, to avoid rounding drift across hundreds of entries. `flightTrackId` and `coPilotId`
   are nullable and optional - see below.
 - **Airfield** - reference data seeded from OurAirports' GB dataset
-  ([`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md)), not pilot-submitted - there is
+  ([`docs/plans/done/airfield-picker.md`](docs/plans/done/airfield-picker.md)), not pilot-submitted - there is
   no `POST /airfield`. name/ICAO code/municipality/country/region/coordinates/elevation/type, shared
   across pilots. `GET /airfield?search=` (name substring or ICAO code prefix; empty search returns
   the full GB set alphabetically, no minimum-length restriction) backs the flight-entry departure/
   arrival picker, ranked with the calling pilot's own recently-flown airfields first. `GET
   /airfield/recent` returns just those last 5 distinct flown airfields, most recently flown first -
   a right-sized alternative for on-focus browsing (see
-  [`docs/plans/picker-recent-endpoints.md`](docs/plans/picker-recent-endpoints.md)) rather than
+  [`docs/plans/done/picker-recent-endpoints.md`](docs/plans/done/picker-recent-endpoints.md)) rather than
   loading the full ~1,200-row table. `GET /flight-entry-context` aggregates `GET /airfield/recent`,
   `GET /aircraft/recent`, and `GET /pilot?search=` (no query) into one response, for the
   create-flight-entry screen's four required pickers - see
-  [`docs/plans/new-entry-context-endpoint.md`](docs/plans/new-entry-context-endpoint.md). The three
+  [`docs/plans/done/new-entry-context-endpoint.md`](docs/plans/done/new-entry-context-endpoint.md). The three
   individual endpoints stay, unchanged, for a picker re-fetching after being cleared and refocused.
 - **FlightTrack** - a raw GPS recording (points stored as a single JSON blob for now, not one row per
   point - see the class Javadoc for why). Feeds a *draft* `FlightEntry` that the pilot confirms or

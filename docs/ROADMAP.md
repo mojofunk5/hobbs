@@ -12,24 +12,24 @@ sweep found six of them had (see the note at the bottom of this file).
 1. **Scaffold** - self-hosted PPL flight logbook backend (2026-08-24).
 2. **Pilot/Account split** - `Pilot` (a person recordable on a flight) separated from `Account` (the
    login), enabling an *unclaimed* pilot (2026-08-29) -
-   [`docs/plans/pilot-account-split.md`](plans/pilot-account-split.md).
+   [`docs/plans/done/pilot-account-split.md`](plans/done/pilot-account-split.md).
 3. **Logbook entries: add / view / list** - real `pilotInCommandId`/`coPilotId` on `FlightEntry`
    (backend) plus `hobbs-ui`'s create/view/list screens (2026-08-29) -
-   [`docs/plans/logbook-entries.md`](plans/logbook-entries.md).
+   [`docs/plans/done/logbook-entries.md`](plans/done/logbook-entries.md).
 4. **CI speedups** - parallel test execution, Docker layer/Gradle build caching, skip CI for
    docs-only commits (2026-08-29 to 2026-08-30, both repos).
 5. **Integration test suite split by endpoint** - `HobbsApplicationIntegrationTest`'s ~950 lines
    split into six per-endpoint classes, 5 chunks (2026-08-30) -
-   [`docs/plans/split-integration-test-by-endpoint.md`](plans/split-integration-test-by-endpoint.md).
+   [`docs/plans/done/split-integration-test-by-endpoint.md`](plans/done/split-integration-test-by-endpoint.md).
 6. **Aircraft reference data & picker** - seeded from OpenSky, all 4 chunks including the `hobbs-ui`
    widget and Browse Aircraft screen (2026-08-30) -
-   [`docs/plans/aircraft-picker.md`](plans/aircraft-picker.md).
+   [`docs/plans/done/aircraft-picker.md`](plans/done/aircraft-picker.md).
 7. **Pilot picker** - privacy-scoped `GET /pilot?search=` plus the `hobbs-ui` widget (2026-08-30) -
-   [`docs/plans/pilot-picker.md`](plans/pilot-picker.md).
+   [`docs/plans/done/pilot-picker.md`](plans/done/pilot-picker.md).
 8. **Airfield reference data & picker** - seeded from OurAirports, all 6 backend chunks, the
    `hobbs-ui` widget, and the `FlightEntry` airfield-id contract (departure/arrival place is now a
    required `AirfieldId`, free text removed entirely) (2026-08-30) -
-   [`docs/plans/airfield-picker.md`](plans/airfield-picker.md).
+   [`docs/plans/done/airfield-picker.md`](plans/done/airfield-picker.md).
 9. **Aircraft search trigram indexes** - Postgres `pg_trgm` GIN indexes fixing slow substring search
    at the aircraft table's real (~600k row) scale (2026-08-30, perf-only).
 10. **Typeahead picker UX pass** - loading/finished/no-results/clear feedback made consistent across
@@ -37,10 +37,10 @@ sweep found six of them had (see the note at the bottom of this file).
     decisions.
 11. **Picker recent-items endpoints** - `GET /airfield/recent`/`GET /aircraft/recent`, replacing
     "fetch the whole reference table on focus," plus `hobbs-ui`'s on-focus loading (2026-08-31) -
-    [`docs/plans/picker-recent-endpoints.md`](plans/picker-recent-endpoints.md).
+    [`docs/plans/done/picker-recent-endpoints.md`](plans/done/picker-recent-endpoints.md).
 12. **`GET /flight-entry-context`** - one prefetch call aggregating what the create-flight-entry
     screen's four pickers need, plus `hobbs-ui` consuming it (2026-08-31) -
-    [`docs/plans/new-entry-context-endpoint.md`](plans/new-entry-context-endpoint.md).
+    [`docs/plans/done/new-entry-context-endpoint.md`](plans/done/new-entry-context-endpoint.md).
 13. **Split `CreateFlightEntryScreen`** (`hobbs-ui`, 2026-08-30) - see that repo's
     `docs/plans/split-create-flight-entry-screen.md`.
 

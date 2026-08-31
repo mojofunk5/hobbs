@@ -11,8 +11,8 @@ Reverse-chronological - newest first.
 
 ## 2026-08-31: add `GET /flight-entry-context`, a single-call prefetch for starting a new entry
 
-Full plan: [`docs/plans/new-entry-context-endpoint.md`](plans/new-entry-context-endpoint.md).
-`docs/plans/picker-recent-endpoints.md` (below) made `hobbs-ui`'s pickers lazy - each fetches its own
+Full plan: [`docs/plans/done/new-entry-context-endpoint.md`](plans/done/new-entry-context-endpoint.md).
+`docs/plans/done/picker-recent-endpoints.md` (below) made `hobbs-ui`'s pickers lazy - each fetches its own
 suggestions on focus. That's right for a screen a pilot might only partly use, but wrong for
 create-flight-entry: `aircraftId`/`departureAirfieldId`/`arrivalAirfieldId`/`pilotInCommandId` are
 all required on `FlightEntry`, so a pilot creating an entry is essentially certain to focus every
@@ -27,7 +27,7 @@ consuming a prefetched batch instead of each fetching on focus) is its own separ
 
 ## 2026-08-31: add `GET /airfield/recent` and `GET /aircraft/recent` rather than reuse the search endpoints
 
-Full plan: [`docs/plans/picker-recent-endpoints.md`](plans/picker-recent-endpoints.md). Prompted by a
+Full plan: [`docs/plans/done/picker-recent-endpoints.md`](plans/done/picker-recent-endpoints.md). Prompted by a
 `hobbs-ui` bug investigation: `AirfieldPicker` was fetching the entire ~1,200-row `airfield` table on
 every focus (`GET /airfield` with no `search`) purely to surface the calling pilot's own last 5
 flown airfields via `Logbook.searchAirfields`'s existing recent-first splice. Rather than have
@@ -43,7 +43,7 @@ table, so there's no analogous waste to fix there.
 
 ## 2026-08-30: Admin stays its own endpoint/`/admin/*` namespace, not folded into resource endpoints
 
-Prompted by finishing the integration-test split (`docs/plans/split-integration-test-by-endpoint.md`)
+Prompted by finishing the integration-test split (`docs/plans/done/split-integration-test-by-endpoint.md`)
 and Andy asking whether admin capability should instead live on the relevant resource endpoint (e.g.
 pilot disable/enable as a variant of `PUT /pilot/{id}` rather than its own `PUT
 /admin/pilot/{id}`) - confirmed keeping the current shape rather than folding it in:
@@ -101,7 +101,7 @@ That meant a co-pilot who hadn't signed up couldn't be recorded by name - there 
 "unclaimed" `Pilot` can exist with no account, and the pilot who logged it can later invite the real
 person to claim it via a referral code scoped to that specific `PilotId`
 (`referral_code.claims_pilot_id`). Full design, ground truth, and rationale in
-[`docs/plans/pilot-account-split.md`](plans/pilot-account-split.md) - including why `email`/`disabled`
+[`docs/plans/done/pilot-account-split.md`](plans/done/pilot-account-split.md) - including why `email`/`disabled`
 were dropped from `Pilot` entirely rather than just relaxed, and the pre-existing
 `pilot.email`/`auth_identity.identifier` desync bug fixed as a byproduct. The plan called for an
 expand-only migration (leaving `pilot.email`/`disabled_at` in place until a later, separate migration,
@@ -145,7 +145,7 @@ a TLS cert anymore - see the CLAUDE.md note above.
 
 ## 2026-08-30: Aircraft picker - open questions resolved during implementation
 
-[`docs/plans/aircraft-picker.md`](plans/aircraft-picker.md) left two things for review before
+[`docs/plans/done/aircraft-picker.md`](plans/done/aircraft-picker.md) left two things for review before
 implementation; resolved as follows rather than blocking on a second doc round-trip:
 
 - **DTO shape for browse vs. picker:** one expanded `AircraftDto` (all reference fields, most
@@ -174,7 +174,7 @@ from an OpenSky contributor, not a real manufacturer name (V10, which also had t
 `aircraft_make_idx` first - H2, used for jOOQ codegen and the test suite, refuses to index a
 CLOB/TEXT column at all).
 
-Downloaded the real CSV locally afterwards (see `docs/plans/aircraft-picker.md`'s data source URL)
+Downloaded the real CSV locally afterwards (see `docs/plans/done/aircraft-picker.md`'s data source URL)
 and ran it end-to-end against a local H2 database to sanity-check the rest, rather than continuing
 to whack-a-mole one crash per production attempt. Found two more real issues, fixed proactively:
 
@@ -191,7 +191,7 @@ V7-V10 all applied.
 
 ## 2026-08-30: Airfield picker chunk 4 - expand-only, no backfill, no contract yet
 
-[`docs/plans/airfield-picker.md`](plans/airfield-picker.md)'s Open questions flagged the
+[`docs/plans/done/airfield-picker.md`](plans/done/airfield-picker.md)'s Open questions flagged the
 `FlightEntry.departurePlace`/`arrivalPlace` -> `AirfieldId` migration as needing "its own
 expand/backfill/contract sequence" and left scoping it to implementation. Implemented as expand
 only, deliberately stopping there:
@@ -224,7 +224,7 @@ which is consistent with "recently flown" naturally excluding entries with no id
 
 ## 2026-08-30: Airfield picker chunk 6 - contract step done after all, supersedes the "no contract scheduled" call above
 
-The chunk 4 entry above (and `docs/plans/airfield-picker.md`'s Open questions) deliberately left no
+The chunk 4 entry above (and `docs/plans/done/airfield-picker.md`'s Open questions) deliberately left no
 contract step scheduled, because there was no safe way to backfill `departureAirfieldId`/
 `arrivalAirfieldId` onto existing `FlightEntry` rows that only ever had free-text `departurePlace`/
 `arrivalPlace` - dropping the free-text columns, or making the id columns `NOT NULL`, would have

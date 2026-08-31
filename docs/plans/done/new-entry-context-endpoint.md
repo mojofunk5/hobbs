@@ -6,7 +6,7 @@ create-flight-entry pickers ([hobbs-ui#36](https://github.com/mojofunk5/hobbs-ui
 
 ## Context
 
-`docs/plans/picker-recent-endpoints.md` made `hobbs-ui`'s pickers lazy: each of `AirfieldPicker`
+`docs/plans/done/picker-recent-endpoints.md` made `hobbs-ui`'s pickers lazy: each of `AirfieldPicker`
 (departure/arrival), `AircraftPicker`, and `PilotPicker` (PIC/co-pilot) fetches its own suggestion
 list the moment it gains focus, via `GET /airfield/recent`, `GET /aircraft/recent`, and
 `GET /pilot?search=` (no query) respectively. That's the right call for a screen a pilot might only
@@ -31,7 +31,7 @@ below.
     `Logbook.RECENT_ITEMS_LIMIT`)
   - `recentAircraft`: same as `GET /aircraft/recent` (`AircraftDto[]`, same cap)
   - `knownPilots`: same data and shape as `GET /pilot?search=` with no query (`PilotSummaryDto[]`,
-    uncapped - see `docs/plans/pilot-picker.md`)
+    uncapped - see `docs/plans/done/pilot-picker.md`)
 - **Pure aggregation, no new domain logic.** The handler calls exactly the three existing methods -
   `Logbook.recentAirfields(callerId)`, `Logbook.recentAircraft(callerId)`,
   `Pilots.searchKnownTo(callerId, null)` - and maps each result with the existing
@@ -69,7 +69,7 @@ below.
   `GET /pilot?search=`.** Kept for: a picker re-fetching after being cleared and refocused (the
   batch snapshot from screen load goes stale the moment the pilot picks something and clears it
   again - see `AirfieldPicker`/`AircraftPicker`'s existing clear-and-reload behaviour in
-  `docs/plans/picker-recent-endpoints.md`), and for any future screen that doesn't want a full
+  `docs/plans/done/picker-recent-endpoints.md`), and for any future screen that doesn't want a full
   prefetch (see the edit/amend point below).
 - **Extending this pattern to editing/amending a flight entry.** Not yet built (see `hobbs`'s
   `CLAUDE.md` "Open work"). Whether prefetch-everything is still the right call there is a genuinely
@@ -79,10 +79,10 @@ below.
 - **The `hobbs-ui` wiring itself.** How the three pickers stop doing their own on-focus fetch and
   instead accept a prefetched suggestion list is UI-side widget API design (an
   `initialSuggestions`-shaped parameter, roughly) - a separate doc + PR in `hobbs-ui`, mirroring how
-  `docs/plans/picker-recent-endpoints.md` (this repo) and `docs/plans/typeahead-picker.md`
+  `docs/plans/done/picker-recent-endpoints.md` (this repo) and `docs/plans/typeahead-picker.md`
   (`hobbs-ui`) were split last time.
 - **Caching or memoizing the composite response.** Same reasoning as
-  `docs/plans/picker-recent-endpoints.md`'s equivalent line: three cheap point-queries against one
+  `docs/plans/done/picker-recent-endpoints.md`'s equivalent line: three cheap point-queries against one
   pilot's own small history, not a table scan - no perf concern to solve for.
 - **Any change to `Pilots.searchKnownTo`'s uncapped behaviour.** Out of scope, unchanged from
-  `docs/plans/pilot-picker.md`.
+  `docs/plans/done/pilot-picker.md`.

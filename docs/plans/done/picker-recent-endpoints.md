@@ -15,7 +15,7 @@ Javadoc. That's a lot of payload for "show me my last 5 airfields," and is the s
 Compare the three pickers' on-focus behavior today:
 - **Pilot:** `GET /pilot?search=` with no query returns the caller's full *privacy-scoped* known-pilot
   set (only people they've created or flown with, plus themselves - see
-  `docs/plans/pilot-picker.md`). Genuinely small per pilot - a personal list, not a reference table.
+  `docs/plans/done/pilot-picker.md`). Genuinely small per pilot - a personal list, not a reference table.
   **No change needed here** - loading everything on focus is the right call at this scale.
 - **Airfield:** loads the full ~1,200-row GB reference table on focus, just to surface 5 recent ones.
   **Redesigning this.**
