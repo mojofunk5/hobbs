@@ -6,6 +6,7 @@ import com.bonney.hobbs.dto.ClaimInviteRequestDto;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreatePilotDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
+import com.bonney.hobbs.dto.FlightEntryContextDto;
 import com.bonney.hobbs.dto.FlightEntryDto;
 import com.bonney.hobbs.dto.HealthDto;
 import com.bonney.hobbs.dto.InvitePilotDto;
@@ -141,6 +142,9 @@ public interface HobbsClient {
 
     @RequestLine("GET /airfield/recent")
     List<AirfieldDto> recentAirfields();
+
+    @RequestLine("GET /flight-entry-context")
+    FlightEntryContextDto flightEntryContext();
 
     @RequestLine("POST /flight")
     FlightEntryDto createFlightEntry(CreateFlightEntryDto request);

@@ -38,6 +38,7 @@ import com.bonney.hobbs.endpoint.AdminEndpoint;
 import com.bonney.hobbs.endpoint.AircraftEndpoint;
 import com.bonney.hobbs.endpoint.AirfieldEndpoint;
 import com.bonney.hobbs.endpoint.AuthEndpoint;
+import com.bonney.hobbs.endpoint.FlightEntryContextEndpoint;
 import com.bonney.hobbs.endpoint.FlightEntryEndpoint;
 import com.bonney.hobbs.endpoint.HealthEndpoint;
 import com.bonney.hobbs.endpoint.PilotEndpoint;
@@ -134,6 +135,7 @@ public class HobbsApplication {
         FlightEntryEndpoint flightEntryEndpoint = new FlightEntryEndpoint(logbook);
         AircraftEndpoint aircraftEndpoint = new AircraftEndpoint(logbook);
         AirfieldEndpoint airfieldEndpoint = new AirfieldEndpoint(logbook);
+        FlightEntryContextEndpoint flightEntryContextEndpoint = new FlightEntryContextEndpoint(logbook, pilots);
         PilotEndpoint pilotEndpoint = new PilotEndpoint(pilots, accounts, adminRepository, referralCodeRepository,
                 emailSender, config.frontendBaseUrl(), config.referralCodeTtlHours());
         AuthEndpoint authEndpoint = new AuthEndpoint(auth, adminRepository, passwordReset);
@@ -189,6 +191,7 @@ public class HobbsApplication {
             flightEntryEndpoint.registerRoutes(javalinConfig);
             aircraftEndpoint.registerRoutes(javalinConfig);
             airfieldEndpoint.registerRoutes(javalinConfig);
+            flightEntryContextEndpoint.registerRoutes(javalinConfig);
             pilotEndpoint.registerRoutes(javalinConfig);
             authEndpoint.registerRoutes(javalinConfig);
             adminEndpoint.registerRoutes(javalinConfig);
