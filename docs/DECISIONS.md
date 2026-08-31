@@ -9,6 +9,22 @@ work is this repo's README "Not yet built" section and CLAUDE.md "Open work").
 
 Reverse-chronological - newest first.
 
+## 2026-08-31: add `GET /airfield/recent` and `GET /aircraft/recent` rather than reuse the search endpoints
+
+Full plan: [`docs/plans/picker-recent-endpoints.md`](plans/picker-recent-endpoints.md). Prompted by a
+`hobbs-ui` bug investigation: `AirfieldPicker` was fetching the entire ~1,200-row `airfield` table on
+every focus (`GET /airfield` with no `search`) purely to surface the calling pilot's own last 5
+flown airfields via `Logbook.searchAirfields`'s existing recent-first splice. Rather than have
+`hobbs-ui` keep doing that just because the data happened to already be reachable that way, added two
+endpoints sized to what's actually needed: `GET /airfield/recent` and `GET /aircraft/recent`, both
+capped at 5, both backed by existing (airfield) or newly-added (aircraft, a new
+`FlightEntryRepository#findRecentAircraftIds`) recent-flown lookups. `GET /airfield?search=` and
+`GET /aircraft?search=` are unchanged - this is additive, not a breaking change to either.
+
+Deliberately **not** extended to `GET /pilot?search=` - that endpoint's empty-query response is
+already privacy-scoped to a small per-pilot set (people the caller has flown with), not a reference
+table, so there's no analogous waste to fix there.
+
 ## 2026-08-30: Admin stays its own endpoint/`/admin/*` namespace, not folded into resource endpoints
 
 Prompted by finishing the integration-test split (`docs/plans/split-integration-test-by-endpoint.md`)
