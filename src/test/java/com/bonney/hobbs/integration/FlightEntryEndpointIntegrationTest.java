@@ -26,9 +26,12 @@ class FlightEntryEndpointIntegrationTest extends AbstractIntegrationTest {
         assertThat(created.getDepartureAirfieldId(), is(notNullValue()));
         assertThat(created.getTotalMinutes(), is(45));
         assertThat(created.getFlightTrackId(), is((UUID) null));
+        assertThat(created.getHolderOperatingCapacity(), is("PILOT_UNDER_TRAINING"));
+        assertThat(created.getHolderOperatingCapacityNotation(), is("P.u/t"));
 
         FlightEntryDto fetched = pilot.getFlightEntry(created.getId());
         assertThat(fetched.getId(), is(created.getId()));
+        assertThat(fetched.getHolderOperatingCapacityNotation(), is("P.u/t"));
     }
 
     @Test

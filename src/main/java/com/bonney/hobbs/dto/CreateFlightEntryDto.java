@@ -1,5 +1,6 @@
 package com.bonney.hobbs.dto;
 
+import com.bonney.hobbs.domain.HolderOperatingCapacity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ public class CreateFlightEntryDto {
     private final UUID arrivalAirfieldId;
     private final UUID pilotInCommandId;
     private final UUID coPilotId;
+    private final HolderOperatingCapacity holderOperatingCapacity;
     private final int singleEngineMinutes;
     private final int multiEngineMinutes;
     private final int totalMinutes;
@@ -49,6 +51,7 @@ public class CreateFlightEntryDto {
                                  @JsonProperty("arrivalAirfieldId") UUID arrivalAirfieldId,
                                  @JsonProperty("pilotInCommandId") UUID pilotInCommandId,
                                  @JsonProperty("coPilotId") UUID coPilotId,
+                                 @JsonProperty("holderOperatingCapacity") HolderOperatingCapacity holderOperatingCapacity,
                                  @JsonProperty("singleEngineMinutes") int singleEngineMinutes,
                                  @JsonProperty("multiEngineMinutes") int multiEngineMinutes,
                                  @JsonProperty("totalMinutes") int totalMinutes,
@@ -71,6 +74,7 @@ public class CreateFlightEntryDto {
         this.arrivalAirfieldId = arrivalAirfieldId;
         this.pilotInCommandId = pilotInCommandId;
         this.coPilotId = coPilotId;
+        this.holderOperatingCapacity = holderOperatingCapacity;
         this.singleEngineMinutes = singleEngineMinutes;
         this.multiEngineMinutes = multiEngineMinutes;
         this.totalMinutes = totalMinutes;
@@ -120,6 +124,10 @@ public class CreateFlightEntryDto {
 
     public UUID getCoPilotId() {
         return coPilotId;
+    }
+
+    public HolderOperatingCapacity getHolderOperatingCapacity() {
+        return holderOperatingCapacity;
     }
 
     public int getSingleEngineMinutes() {

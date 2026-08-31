@@ -20,6 +20,8 @@ public class FlightEntryDto {
     private final UUID arrivalAirfieldId;
     private final UUID pilotInCommandId;
     private final UUID coPilotId;
+    private final String holderOperatingCapacity;
+    private final String holderOperatingCapacityNotation;
     private final int singleEngineMinutes;
     private final int multiEngineMinutes;
     private final int totalMinutes;
@@ -42,6 +44,8 @@ public class FlightEntryDto {
                            @JsonProperty("arrivalAirfieldId") UUID arrivalAirfieldId,
                            @JsonProperty("pilotInCommandId") UUID pilotInCommandId,
                            @JsonProperty("coPilotId") UUID coPilotId,
+                           @JsonProperty("holderOperatingCapacity") String holderOperatingCapacity,
+                           @JsonProperty("holderOperatingCapacityNotation") String holderOperatingCapacityNotation,
                            @JsonProperty("singleEngineMinutes") int singleEngineMinutes,
                            @JsonProperty("multiEngineMinutes") int multiEngineMinutes,
                            @JsonProperty("totalMinutes") int totalMinutes,
@@ -65,6 +69,8 @@ public class FlightEntryDto {
         this.arrivalAirfieldId = arrivalAirfieldId;
         this.pilotInCommandId = pilotInCommandId;
         this.coPilotId = coPilotId;
+        this.holderOperatingCapacity = holderOperatingCapacity;
+        this.holderOperatingCapacityNotation = holderOperatingCapacityNotation;
         this.singleEngineMinutes = singleEngineMinutes;
         this.multiEngineMinutes = multiEngineMinutes;
         this.totalMinutes = totalMinutes;
@@ -118,6 +124,14 @@ public class FlightEntryDto {
 
     public UUID getCoPilotId() {
         return coPilotId;
+    }
+
+    public String getHolderOperatingCapacity() {
+        return holderOperatingCapacity;
+    }
+
+    public String getHolderOperatingCapacityNotation() {
+        return holderOperatingCapacityNotation;
     }
 
     public int getSingleEngineMinutes() {

@@ -1,6 +1,7 @@
 package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
+import com.bonney.hobbs.domain.HolderOperatingCapacity;
 import com.bonney.hobbs.dto.AircraftDto;
 import com.bonney.hobbs.dto.AirfieldDto;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
@@ -29,7 +30,7 @@ class FlightEntryContextEndpointIntegrationTest extends AbstractIntegrationTest 
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         FlightEntryContextDto context = pilot.flightEntryContext();
 
@@ -47,7 +48,7 @@ class FlightEntryContextEndpointIntegrationTest extends AbstractIntegrationTest 
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         FlightEntryContextDto context = pilot.flightEntryContext();
 
@@ -80,7 +81,7 @@ class FlightEntryContextEndpointIntegrationTest extends AbstractIntegrationTest 
         UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         FlightEntryContextDto context = second.flightEntryContext();
 

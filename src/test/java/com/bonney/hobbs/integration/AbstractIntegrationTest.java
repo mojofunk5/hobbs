@@ -10,6 +10,7 @@ import com.bonney.hobbs.domain.Airfield;
 import com.bonney.hobbs.domain.AirfieldId;
 import com.bonney.hobbs.domain.AirfieldRepository;
 import com.bonney.hobbs.domain.EngineCategory;
+import com.bonney.hobbs.domain.HolderOperatingCapacity;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import com.bonney.hobbs.dto.InvitePilotDto;
@@ -141,8 +142,8 @@ abstract class AbstractIntegrationTest {
         OffsetDateTime departureTime = OffsetDateTime.parse("2026-08-24T10:00:00Z");
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
         return new CreateFlightEntryDto(aircraftId, flightTrackId, date, departureTime,
-                arrivalTime, airfieldId, airfieldId, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0,
-                "Circuits");
+                arrivalTime, airfieldId, airfieldId, pilotInCommandId, null, HolderOperatingCapacity.PILOT_UNDER_TRAINING,
+                45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
     }
 
     String extractResetCode(String email) {

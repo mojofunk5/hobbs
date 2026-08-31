@@ -1,6 +1,7 @@
 package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
+import com.bonney.hobbs.domain.HolderOperatingCapacity;
 import com.bonney.hobbs.dto.AirfieldDto;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
 import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
@@ -89,7 +90,7 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         List<UUID> ids = pilot.searchAirfields().stream().map(AirfieldDto::getId).toList();
 
@@ -105,7 +106,7 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         List<UUID> ids = pilot.searchAirfields("sherburn").stream().map(AirfieldDto::getId).toList();
 
@@ -122,7 +123,7 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         // second never flew anywhere, so their results stay plain alphabetical.
         List<UUID> ids = second.searchAirfields().stream().map(AirfieldDto::getId).toList();
@@ -139,10 +140,10 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 1),
                 OffsetDateTime.parse("2026-08-01T10:00:00Z"), OffsetDateTime.parse("2026-08-01T10:45:00Z"),
-                alpha, alpha, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                alpha, alpha, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
         pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         List<UUID> ids = pilot.recentAirfields().stream().map(AirfieldDto::getId).toList();
 
@@ -166,7 +167,7 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
         first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
                 OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
-                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+                zulu, zulu, pilotInCommandId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
 
         assertThat(second.recentAirfields(), is(java.util.List.of()));
     }
