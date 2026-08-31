@@ -120,7 +120,10 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   (manufacturer ICAO code, type code, serial number, operator, owner, built year, engines,
   category description). Shared across pilots, not scoped to one account.
   `GET /aircraft?search=` (required, minimum 2 characters, capped at 50 results) backs both the
-  flight-entry aircraft picker and the Browse Aircraft page in `hobbs-ui`.
+  flight-entry aircraft picker and the Browse Aircraft page in `hobbs-ui`. `GET /aircraft/recent`
+  returns the calling pilot's own last 5 distinct flown aircraft, most recently flown first - a
+  right-sized on-focus browse for the picker (see
+  [`docs/plans/picker-recent-endpoints.md`](docs/plans/picker-recent-endpoints.md)).
 - **FlightEntry** - one row of the logbook: date, departure/arrival (each an `AirfieldId` + time -
   see **Airfield** below; no free-text place field), `pilotInCommandId`/`coPilotId` (both `PilotId`s -
   see `docs/GLOSSARY.md`'s **PIC** entry for how the PIC can differ from the entry's owner), and
@@ -133,7 +136,11 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   no `POST /airfield`. name/ICAO code/municipality/country/region/coordinates/elevation/type, shared
   across pilots. `GET /airfield?search=` (name substring or ICAO code prefix; empty search returns
   the full GB set alphabetically, no minimum-length restriction) backs the flight-entry departure/
-  arrival picker, ranked with the calling pilot's own recently-flown airfields first.
+  arrival picker, ranked with the calling pilot's own recently-flown airfields first. `GET
+  /airfield/recent` returns just those last 5 distinct flown airfields, most recently flown first -
+  a right-sized alternative for on-focus browsing (see
+  [`docs/plans/picker-recent-endpoints.md`](docs/plans/picker-recent-endpoints.md)) rather than
+  loading the full ~1,200-row table.
 - **FlightTrack** - a raw GPS recording (points stored as a single JSON blob for now, not one row per
   point - see the class Javadoc for why). Feeds a *draft* `FlightEntry` that the pilot confirms or
   corrects; never writes a `FlightEntry` on its own.

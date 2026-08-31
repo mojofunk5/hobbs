@@ -21,6 +21,7 @@ public class AirfieldEndpoint {
 
     public void registerRoutes(JavalinConfig config) {
         config.routes.get("airfield", this::searchAirfields);
+        config.routes.get("airfield/recent", this::recentAirfields);
     }
 
     @OpenApi(
@@ -46,6 +47,29 @@ public class AirfieldEndpoint {
         PilotId callerId = context.attribute(SessionAuthFilter.AUTHENTICATED_PILOT_ID);
         String search = context.queryParam("search");
         List<AirfieldDto> airfields = logbook.searchAirfields(callerId, search).stream()
+                .map(AirfieldMapper::toAirfieldDto)
+                .toList();
+        context.json(airfields);
+    }
+
+    @OpenApi(
+        path = "/airfield/recent",
+        methods = HttpMethod.GET,
+        summary = "The calling pilot's own recently-flown airfields",
+        description = "Returns the calling pilot's own last 5 distinct flown airfields, most recently flown "
+                + "first (see docs/plans/picker-recent-endpoints.md) - a right-sized alternative to "
+                + "GET /airfield?search= with no search for callers (the hobbs-ui airfield picker's on-focus "
+                + "load) that only want this, not the full ~1,200-row GB reference table. Takes no query "
+                + "params - caller identity from the session is the only input, since \"recent\" isn't a "
+                + "search.",
+        tags = {"Airfield"},
+        responses = {
+            @OpenApiResponse(status = "200", content = @OpenApiContent(from = AirfieldDto[].class))
+        }
+    )
+    private void recentAirfields(Context context) {
+        PilotId callerId = context.attribute(SessionAuthFilter.AUTHENTICATED_PILOT_ID);
+        List<AirfieldDto> airfields = logbook.recentAirfields(callerId).stream()
                 .map(AirfieldMapper::toAirfieldDto)
                 .toList();
         context.json(airfields);

@@ -1,6 +1,6 @@
 # Plan: `GET /airfield/recent` and `GET /aircraft/recent`
 
-**Status:** Designed 2026-08-31, not yet implemented.
+**Status:** Designed 2026-08-31, implemented 2026-08-31.
 
 ## Context
 

@@ -2,9 +2,14 @@ package com.bonney.hobbs.integration;
 
 import com.bonney.hobbs.client.HobbsClient;
 import com.bonney.hobbs.dto.AircraftDto;
+import com.bonney.hobbs.dto.CreateFlightEntryDto;
+import com.bonney.hobbs.dto.CreateUnclaimedPilotDto;
 import feign.FeignException;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -83,5 +88,46 @@ class AircraftEndpointIntegrationTest extends AbstractIntegrationTest {
         UUID id = seedAircraft("G-ABCD", "Cessna", "152");
 
         assertThat(pilot.searchAircraft("cess", false).stream().map(AircraftDto::getId).toList(), contains(id));
+    }
+
+    @Test
+    void recentReturnsTheCallersRecentlyFlownAircraftMostRecentFirst() {
+        HobbsClient pilot = createAuthenticatedClient();
+        UUID airfieldId = seedAirfield("EGCJ", "Sherburn-in-Elmet Airfield");
+        UUID cessna = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID warrior = seedAircraft("G-EFGH", "Piper", "Warrior");
+        UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        pilot.createFlightEntry(new CreateFlightEntryDto(cessna, null, LocalDate.of(2026, 8, 1),
+                OffsetDateTime.parse("2026-08-01T10:00:00Z"), OffsetDateTime.parse("2026-08-01T10:45:00Z"),
+                airfieldId, airfieldId, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+        pilot.createFlightEntry(new CreateFlightEntryDto(warrior, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                airfieldId, airfieldId, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        List<UUID> ids = pilot.recentAircraft().stream().map(AircraftDto::getId).toList();
+
+        assertThat(ids, contains(warrior, cessna));
+    }
+
+    @Test
+    void recentReturnsAnEmptyListWhenTheCallerHasNoFlightEntries() {
+        HobbsClient pilot = createAuthenticatedClient();
+        seedAircraft("G-ABCD", "Cessna", "152");
+
+        assertThat(pilot.recentAircraft(), is(java.util.List.of()));
+    }
+
+    @Test
+    void recentIsScopedToTheCallingPilot() {
+        HobbsClient first = createAuthenticatedClient();
+        HobbsClient second = createAuthenticatedClient();
+        UUID airfieldId = seedAirfield("EGCJ", "Sherburn-in-Elmet Airfield");
+        UUID cessna = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        first.createFlightEntry(new CreateFlightEntryDto(cessna, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                airfieldId, airfieldId, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        assertThat(second.recentAircraft(), is(java.util.List.of()));
     }
 }

@@ -131,6 +131,47 @@ class AirfieldEndpointIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void recentReturnsTheCallersRecentlyFlownAirfieldsMostRecentFirst() {
+        HobbsClient pilot = createAuthenticatedClient();
+        UUID alpha = seedAirfield("EGAA", "Alpha Airfield");
+        UUID zulu = seedAirfield("EGZZ", "Zulu Airfield");
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID pilotInCommandId = pilot.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 1),
+                OffsetDateTime.parse("2026-08-01T10:00:00Z"), OffsetDateTime.parse("2026-08-01T10:45:00Z"),
+                alpha, alpha, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+        pilot.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        List<UUID> ids = pilot.recentAirfields().stream().map(AirfieldDto::getId).toList();
+
+        assertThat(ids, contains(zulu, alpha));
+    }
+
+    @Test
+    void recentReturnsAnEmptyListWhenTheCallerHasNoFlightEntries() {
+        HobbsClient pilot = createAuthenticatedClient();
+        seedAirfield("EGCJ", "Sherburn-in-Elmet Airfield");
+
+        assertThat(pilot.recentAirfields(), is(java.util.List.of()));
+    }
+
+    @Test
+    void recentIsScopedToTheCallingPilot() {
+        HobbsClient first = createAuthenticatedClient();
+        HobbsClient second = createAuthenticatedClient();
+        UUID zulu = seedAirfield("EGZZ", "Zulu Airfield");
+        UUID aircraftId = seedAircraft("G-ABCD", "Cessna", "152");
+        UUID pilotInCommandId = first.createPilot(new CreateUnclaimedPilotDto("Instructor Smith")).getId();
+        first.createFlightEntry(new CreateFlightEntryDto(aircraftId, null, LocalDate.of(2026, 8, 24),
+                OffsetDateTime.parse("2026-08-24T10:00:00Z"), OffsetDateTime.parse("2026-08-24T10:45:00Z"),
+                zulu, zulu, pilotInCommandId, null, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits"));
+
+        assertThat(second.recentAirfields(), is(java.util.List.of()));
+    }
+
+    @Test
     void airfieldDtoNeverExposesSourceNameOrSourceId() {
         HobbsClient pilot = createAuthenticatedClient();
         seedAirfield("EGCJ", "Sherburn-in-Elmet Airfield");

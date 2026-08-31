@@ -2,6 +2,7 @@ package com.bonney.hobbs.domain;
 
 import com.bonney.hobbs.jooq.tables.records.FlightEntryRecord;
 import org.jooq.DSLContext;
+import org.jooq.Record1;
 import org.jooq.Record2;
 import org.jooq.Result;
 
@@ -121,6 +122,33 @@ public class FlightEntryRepository {
             }
         }
         return distinctIds.stream().limit(limit).map(AirfieldId::from).toList();
+    }
+
+    /**
+     * Sibling to {@link #findRecentAirfieldIds} for aircraft - the calling pilot's own last
+     * {@code limit} distinct flown aircraft, most recently flown first. Same newest-first walk and
+     * dedup-via-{@link LinkedHashSet} pattern, but a single {@code aircraft_id} column per row
+     * rather than the departure/arrival pair.
+     */
+    public List<AircraftId> findRecentAircraftIds(PilotId pilotId, int limit) {
+        Result<Record1<UUID>> records = dsl
+                .select(FLIGHT_ENTRY.AIRCRAFT_ID)
+                .from(FLIGHT_ENTRY)
+                .where(FLIGHT_ENTRY.PILOT_ID.eq(pilotId.value()))
+                .orderBy(FLIGHT_ENTRY.DATE.desc(), FLIGHT_ENTRY.DEPARTURE_TIME.desc())
+                .fetch();
+
+        Set<UUID> distinctIds = new LinkedHashSet<>();
+        for (Record1<UUID> record : records) {
+            if (distinctIds.size() >= limit) {
+                break;
+            }
+            UUID aircraftId = record.value1();
+            if (aircraftId != null) {
+                distinctIds.add(aircraftId);
+            }
+        }
+        return distinctIds.stream().limit(limit).map(AircraftId::from).toList();
     }
 
     private static FlightEntry toFlightEntry(FlightEntryRecord record) {
