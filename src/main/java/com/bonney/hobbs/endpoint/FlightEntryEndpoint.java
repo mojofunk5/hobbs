@@ -6,6 +6,7 @@ import com.bonney.hobbs.domain.AirfieldId;
 import com.bonney.hobbs.domain.FlightEntry;
 import com.bonney.hobbs.domain.FlightEntryId;
 import com.bonney.hobbs.domain.FlightTrackId;
+import com.bonney.hobbs.domain.HolderOperatingCapacity;
 import com.bonney.hobbs.domain.Logbook;
 import com.bonney.hobbs.domain.PilotId;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
@@ -63,6 +64,9 @@ public class FlightEntryEndpoint {
                 AirfieldId.from(request.getArrivalAirfieldId()),
                 PilotId.from(request.getPilotInCommandId()),
                 request.getCoPilotId() == null ? null : PilotId.from(request.getCoPilotId()),
+                // TODO(holder-operating-capacity chunk 2): read this from CreateFlightEntryDto once
+                // that field exists - see docs/plans/holder-operating-capacity.md.
+                HolderOperatingCapacity.PILOT_IN_COMMAND,
                 request.getSingleEngineMinutes(),
                 request.getMultiEngineMinutes(),
                 request.getTotalMinutes(),

@@ -48,7 +48,8 @@ class LogbookTest {
         OffsetDateTime arrivalTime = departureTime.plusMinutes(45);
 
         FlightEntry entry = logbook.createEntry(pilotId, aircraftId, null, date, departureTime,
-                arrivalTime, AirfieldId.random(), AirfieldId.random(), PilotId.random(), null, 45, 0, 45, 0, 0, 0,
+                arrivalTime, AirfieldId.random(), AirfieldId.random(), PilotId.random(), null,
+                HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0,
                 0, 0, 45, 0, 3, 0, "Circuits");
 
         assertThat(entry.getPilotId(), is(pilotId));
@@ -67,7 +68,8 @@ class LogbookTest {
 
         FlightEntry entry = logbook.createEntry(PilotId.random(), AircraftId.random(), trackId,
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(),
-                AirfieldId.random(), PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
+                AirfieldId.random(), PilotId.random(), null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
 
         assertThat(entry.getFlightTrackId(), is(Optional.of(trackId)));
     }
@@ -79,7 +81,8 @@ class LogbookTest {
 
         FlightEntry entry = logbook.createEntry(PilotId.random(), AircraftId.random(), null,
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), departureAirfieldId,
-                arrivalAirfieldId, PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
+                arrivalAirfieldId, PilotId.random(), null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 2, 0, null);
 
         assertThat(entry.getDepartureAirfieldId(), is(departureAirfieldId));
         assertThat(entry.getArrivalAirfieldId(), is(arrivalAirfieldId));
@@ -262,6 +265,6 @@ class LogbookTest {
     private FlightEntry aFlightEntry(FlightEntryId id) {
         return new FlightEntry(id, PilotId.random(), AircraftId.random(), null, LocalDate.now(),
                 OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(), AirfieldId.random(),
-                PilotId.random(), null, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 1, 0, null);
+                PilotId.random(), null, HolderOperatingCapacity.PILOT_IN_COMMAND, 45, 0, 45, 0, 0, 0, 45, 0, 0, 0, 1, 0, null);
     }
 }

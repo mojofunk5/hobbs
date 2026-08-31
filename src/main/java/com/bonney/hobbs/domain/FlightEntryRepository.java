@@ -23,6 +23,7 @@ public class FlightEntryRepository {
     }
 
     public void save(FlightEntry entry) {
+        String holderOperatingCapacity = entry.getHolderOperatingCapacity().name();
         dsl.insertInto(FLIGHT_ENTRY)
                 .set(FLIGHT_ENTRY.ID, entry.getId().value())
                 .set(FLIGHT_ENTRY.PILOT_ID, entry.getPilotId().value())
@@ -35,6 +36,7 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().value())
                 .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
                 .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
+                .set(FLIGHT_ENTRY.HOLDER_OPERATING_CAPACITY, holderOperatingCapacity)
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
                 .set(FLIGHT_ENTRY.MULTI_ENGINE_MINUTES, entry.getMultiEngineMinutes())
                 .set(FLIGHT_ENTRY.TOTAL_MINUTES, entry.getTotalMinutes())
@@ -58,6 +60,7 @@ public class FlightEntryRepository {
                 .set(FLIGHT_ENTRY.ARRIVAL_AIRFIELD_ID, entry.getArrivalAirfieldId().value())
                 .set(FLIGHT_ENTRY.PILOT_IN_COMMAND_ID, entry.getPilotInCommandId().value())
                 .set(FLIGHT_ENTRY.CO_PILOT_ID, entry.getCoPilotId().map(PilotId::value).orElse(null))
+                .set(FLIGHT_ENTRY.HOLDER_OPERATING_CAPACITY, holderOperatingCapacity)
                 .set(FLIGHT_ENTRY.SINGLE_ENGINE_MINUTES, entry.getSingleEngineMinutes())
                 .set(FLIGHT_ENTRY.MULTI_ENGINE_MINUTES, entry.getMultiEngineMinutes())
                 .set(FLIGHT_ENTRY.TOTAL_MINUTES, entry.getTotalMinutes())
@@ -164,6 +167,7 @@ public class FlightEntryRepository {
                 AirfieldId.from(record.getArrivalAirfieldId()),
                 PilotId.from(record.getPilotInCommandId()),
                 record.getCoPilotId() == null ? null : PilotId.from(record.getCoPilotId()),
+                HolderOperatingCapacity.valueOf(record.getHolderOperatingCapacity()),
                 record.getSingleEngineMinutes(),
                 record.getMultiEngineMinutes(),
                 record.getTotalMinutes(),

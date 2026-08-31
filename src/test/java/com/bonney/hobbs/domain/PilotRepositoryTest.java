@@ -191,7 +191,7 @@ class PilotRepositoryTest {
                                      AirfieldId airfieldId) {
         return new FlightEntry(FlightEntryId.random(), ownerId, aircraftId, null, LocalDate.now(),
                 OffsetDateTime.now(), OffsetDateTime.now(), airfieldId, airfieldId, pilotInCommandId, coPilotId,
-                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                HolderOperatingCapacity.PILOT_IN_COMMAND, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 
     @Test
