@@ -17,6 +17,26 @@ This file provides guidance to Claude Code when working with code in this reposi
 - **Keep documentation in sync.** When making a significant change, update the relevant
   context/documentation files in the same change - this includes `CLAUDE.md`, `README.md`, and
   OpenAPI descriptions. Don't leave stale descriptions behind.
+- **Closing out a plan doc is part of the PR that finishes it, not a follow-up.** When a PR merges
+  the last chunk of a `docs/plans/*.md` doc (the doc's own Chunking section says which chunk is
+  last), that same PR also:
+  1. Updates the doc's `Status:` line to say it's implemented, with a link to the PR(s) that did it -
+     the pattern already used throughout this file and `docs/ROADMAP.md`.
+  2. Moves the doc from `docs/plans/` into `docs/plans/done/` (`git mv`, to preserve history) - see
+     `docs/plans/done/README.md` for the convention. A doc split across chunks in separate PRs stays
+     in `docs/plans/` (not `done/`) until the PR closing the *last* chunk moves it.
+  3. Fixes every link to that doc - other plan docs, `CLAUDE.md`, `README.md`, `docs/GLOSSARY.md`,
+     `docs/DECISIONS.md`, and any `hobbs-ui` doc linking to it by full GitHub URL - to point at its
+     new `docs/plans/done/` path.
+  4. Moves the corresponding line in `docs/ROADMAP.md` from "In flight"/"Backlog" into "Shipped".
+
+  This exists because a 2026-08-31 sweep found six plan docs across both repos silently claiming
+  "not yet implemented" for work that had been merged for up to two days, plus a `CLAUDE.md` bullet
+  describing three fully-shipped features as partially unmerged - see `docs/ROADMAP.md`'s own note
+  on that sweep. "Update docs in the same PR as the change" (the bullet above) had clearly not been
+  happening for plan-doc closeout specifically, even though it was happening for other kinds of
+  changes - treating closeout as its own explicit checklist, not a special case of the general rule,
+  is the fix.
 - **Design in a doc PR, merged and reviewed, before any implementation code is written.** For
   non-trivial work, the plan (a `docs/plans/*.md` doc, `docs/DECISIONS.md`/`docs/GLOSSARY.md`
   updates, backlog entries in this file/`README.md`) is its own PR, reviewed and merged on its own -

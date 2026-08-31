@@ -103,7 +103,8 @@ sweep found six of them had (see the note at the bottom of this file).
 
 - Add a line to "Shipped" in the same PR that merges the last chunk of an item.
 - Move an item from "Backlog" to "In flight" once its plan doc is designed and merged; move it to
-  "Shipped" once its last chunk merges.
+  "Shipped" once its last chunk merges - and, per `CLAUDE.md`'s "Closing out a plan doc" rule, move
+  the plan doc itself into `docs/plans/done/` in that same PR, updating any link to it.
 - This file, `CLAUDE.md`'s "Open work" section, `hobbs-ui`'s `docs/architecture-brief.md` "Open work
   / roadmap" section, and both repos' README "Not yet built"/"What's here today" sections should
   never disagree with each other or with reality - if you update one, check the others in the same
