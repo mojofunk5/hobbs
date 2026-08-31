@@ -9,6 +9,22 @@ work is this repo's README "Not yet built" section and CLAUDE.md "Open work").
 
 Reverse-chronological - newest first.
 
+## 2026-08-31: add `GET /flight-entry-context`, a single-call prefetch for starting a new entry
+
+Full plan: [`docs/plans/new-entry-context-endpoint.md`](plans/new-entry-context-endpoint.md).
+`docs/plans/picker-recent-endpoints.md` (below) made `hobbs-ui`'s pickers lazy - each fetches its own
+suggestions on focus. That's right for a screen a pilot might only partly use, but wrong for
+create-flight-entry: `aircraftId`/`departureAirfieldId`/`arrivalAirfieldId`/`pilotInCommandId` are
+all required on `FlightEntry`, so a pilot creating an entry is essentially certain to focus every
+picker - lazy loading there just adds a sequential per-field round trip on a poor connection instead
+of one round trip for the whole screen. `GET /flight-entry-context` is pure aggregation (a new
+`FlightEntryContextEndpoint`/`FlightEntryContextDto`, no new domain logic) combining the existing
+`Logbook.recentAirfields`/`recentAircraft` and `Pilots.searchKnownTo(callerId, null)` into one
+response. The three individual endpoints stay - still needed for a picker re-fetching after being
+cleared and refocused, and deliberately not extended to a future edit/amend screen (not yet built),
+where "every required picker gets focused" doesn't obviously hold. The `hobbs-ui` wiring (pickers
+consuming a prefetched batch instead of each fetching on focus) is its own separate doc + PR.
+
 ## 2026-08-31: add `GET /airfield/recent` and `GET /aircraft/recent` rather than reuse the search endpoints
 
 Full plan: [`docs/plans/picker-recent-endpoints.md`](plans/picker-recent-endpoints.md). Prompted by a
