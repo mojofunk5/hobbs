@@ -23,7 +23,7 @@ own vocabulary. Alphabetical within each section.
 - **PIC** - Pilot in Command - whoever was legally responsible for and in control of the aircraft on
   that specific flight. Not necessarily whose logbook the entry belongs to: a student's dual-training
   entry is owned by the student (`FlightEntry.pilotId`) but the instructor was PIC that flight, so
-  `FlightEntry.pilotInCommandId` (a `PilotId` - see [`docs/plans/logbook-entries.md`](plans/logbook-entries.md))
+  `FlightEntry.pilotInCommandId` (a `PilotId` - see [`docs/plans/done/logbook-entries.md`](plans/done/logbook-entries.md))
   records the instructor, and `pilotInCommandMinutes` records how much of the flight the *entry's
   owner* spent as PIC (zero, on a fully dual flight). In code, spell out `pilotInCommand` rather than
   abbreviating to `pic` - this includes renaming the pre-existing `picMinutes` field, not just the
@@ -36,7 +36,7 @@ own vocabulary. Alphabetical within each section.
 
 - **Account** - the login/email/enabled-state half of a `Pilot`, one-to-one via `pilot_id`. A `Pilot`
   has an account iff a matching `Account` row exists. See
-  [`docs/plans/pilot-account-split.md`](plans/pilot-account-split.md).
+  [`docs/plans/done/pilot-account-split.md`](plans/done/pilot-account-split.md).
 - **Draft entry** - a `FlightEntry` pre-filled from a `FlightTrack` for the pilot to confirm or
   correct, rather than typing everything by hand. Not yet built - see `CLAUDE.md` "Open work".
 - **FlightEntry** - one row of the logbook. See the aviation terms above for its individual fields.
@@ -46,7 +46,7 @@ own vocabulary. Alphabetical within each section.
 - **Known pilot** - a `Pilot` visible to a given caller in the pilot picker: themselves, anyone they
   created (`created_by`), or anyone they've logged a flight with as PIC or co-pilot. Privacy-scoped
   deliberately - the pilot table as a whole is never listable by a non-admin. See
-  [`docs/plans/pilot-picker.md`](plans/pilot-picker.md).
+  [`docs/plans/done/pilot-picker.md`](plans/done/pilot-picker.md).
 - **Pilot** - someone recordable on a flight (as the entry's owner, as PIC, or - once built - as
   co-pilot); just `id`/`name`/`created_by`. Not the same as an **Account** - a `Pilot` can exist
   without one (see **Unclaimed pilot**).

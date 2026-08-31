@@ -66,7 +66,7 @@ runs on-device vs. server-side, and whether it's the same state machine in both 
 - **Departure/arrival airfield is derived by nearest-match against the existing `Airfield` reference
   table, not asked of the pilot up front.** The first `stationary`→`taxiing`→`takeoffRoll` segment's
   GPS position is matched against `Airfield` (the ~1,200-row GB reference table from
-  `docs/plans/airfield-picker.md`, already seeded/searchable) by nearest distance; same for the final
+  `docs/plans/done/airfield-picker.md`, already seeded/searchable) by nearest distance; same for the final
   `landingRoll`/`fullStopLanding` segment's position for arrival. Reuses `AirfieldId` directly -
   `departureAirfieldId`/`arrivalAirfieldId` are already required, non-free-text fields on
   `FlightEntry` (per that same plan), so this derivation produces exactly the type the field already

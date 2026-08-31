@@ -11,7 +11,7 @@ Story 1 of 3 split out of the "pasted-in ids when adding a flight entry" backlog
 scoping questions, not part of this doc.
 
 Today `pilotInCommandId`/`coPilotId` on `POST /flight` take a raw `PilotId` the caller has to already
-know and paste in (see [`docs/plans/logbook-entries.md`](logbook-entries.md)'s "no pilot search
+know and paste in (see [`docs/plans/done/logbook-entries.md`](logbook-entries.md)'s "no pilot search
 endpoint yet" note). The only existing pilot listing is `GET /admin/pilots` - admin-gated, and
 deliberately returns every pilot in the system (email, disabled state, sign-up/last-login) for admin
 oversight. That's the wrong shape to build a picker against: a non-admin picker must not expose the

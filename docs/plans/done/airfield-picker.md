@@ -8,8 +8,8 @@
 ## Context
 
 Third of the three "pasted-in ids when adding a flight entry" stories (see `CLAUDE.md`'s Open work)
-- pilot and aircraft are done ([`docs/plans/pilot-picker.md`](pilot-picker.md),
-[`docs/plans/aircraft-picker.md`](aircraft-picker.md)). This is the "picking or registering a
+- pilot and aircraft are done ([`docs/plans/done/pilot-picker.md`](pilot-picker.md),
+[`docs/plans/done/aircraft-picker.md`](aircraft-picker.md)). This is the "picking or registering a
 location" story flagged there as needing a domain decision first: `FlightEntry.departurePlace`/
 `arrivalPlace` are still plain `String`s (see `FlightEntry.java`), not an id referencing a real
 entity.

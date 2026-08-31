@@ -40,7 +40,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 - **Design in a doc PR, merged and reviewed, before any implementation code is written.** For
   non-trivial work, the plan (a `docs/plans/*.md` doc, `docs/DECISIONS.md`/`docs/GLOSSARY.md`
   updates, backlog entries in this file/`README.md`) is its own PR, reviewed and merged on its own -
-  see `docs/plans/pilot-account-split.md`/`docs/plans/logbook-entries.md`/`docs/plans/pilot-picker.md`
+  see `docs/plans/done/pilot-account-split.md`/`docs/plans/done/logbook-entries.md`/`docs/plans/done/pilot-picker.md`
   for the shape. Implementation then starts as a **new session** against the merged doc, not a
   continuation of the planning conversation. The doc is written to carry all the context forward on
   its own (decisions made and why, trade-offs weighed, what's explicitly out of scope) so the
@@ -168,7 +168,7 @@ same change, per this file's own "Keep documentation in sync" rule above.
   distance. Currently the two are just linkable via `flightTrackId`; nothing populates one from the
   other yet. Design doc: [`docs/plans/flight-track-derivation.md`](docs/plans/flight-track-derivation.md).
 - **`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId`.** `FlightEntry` has real
-  `pilotInCommandId`/`coPilotId` fields (see [`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md),
+  `pilotInCommandId`/`coPilotId` fields (see [`docs/plans/done/logbook-entries.md`](docs/plans/done/logbook-entries.md),
   implemented) - `SimulatorSession` and `FlightTrack` don't reference a co-pilot's `PilotId` yet. A
   separate, later plan's decision entirely.
 - **Merging two `Pilot` records.** If someone registers their own account (a fresh `PilotId`) instead

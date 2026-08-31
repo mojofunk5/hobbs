@@ -52,7 +52,7 @@ read endpoint over the same `FlightTrack` the derivation endpoint already reads.
   unit-tested directly against hand-built point-list fixtures (straight lines, simple curves) -
   ordinary domain-adjacent utility testing, not a new capability this doc needs to call out.
 - `HobbsClient` (the Feign-style test client) gains a matching `flightTrack(id)` method.
-- No migration - read-shape addition only, same as `docs/plans/new-entry-context-endpoint.md`.
+- No migration - read-shape addition only, same as `docs/plans/done/new-entry-context-endpoint.md`.
 
 ## Depends on
 

@@ -9,7 +9,7 @@ search endpoint) 2026-08-30 - see [hobbs#32](https://github.com/mojofunk5/hobbs/
 ## Context
 
 Story 2 of 3 split out of the "pasted-in ids when adding a flight entry" backlog item (see
-`CLAUDE.md`'s Open work) - the pilot half is done ([`docs/plans/pilot-picker.md`](pilot-picker.md)),
+`CLAUDE.md`'s Open work) - the pilot half is done ([`docs/plans/done/pilot-picker.md`](pilot-picker.md)),
 location is a separate, bigger plan (needs a domain decision first).
 
 Today `aircraftId` on `POST /flight` takes a raw `AircraftId` the caller already has to know.
