@@ -93,10 +93,17 @@ So this plan is scoped narrowly to just the one missing field.
 ## Chunking
 
 ### 1. Schema + domain (backend only, `hobbs`)
-- Migration: add `holder_operating_capacity VARCHAR NOT NULL` to `flight_entry`. No real
-  `FlightEntry` rows exist in production yet (same situation as the airfield-picker contract step -
-  see `docs/DECISIONS.md`'s 2026-08-30 "chunk 6" entry), so this can be a straight `NOT NULL` add,
-  not an expand/backfill/contract sequence.
+- Unlike the airfield-picker contract step (`docs/DECISIONS.md`'s 2026-08-30 "chunk 6" entry), this
+  one **isn't** a clean slate: there are existing `flight_entry` rows in production - all Andy's own
+  test data, not real flights, but real rows nonetheless. A straight `NOT NULL` add would break them
+  (no existing row has a value), so this follows `CLAUDE.md`'s standard expand -> backfill -> contract
+  sequence instead, as three migrations:
+  1. Add `holder_operating_capacity VARCHAR` nullable.
+  2. Backfill every existing row to `PILOT_IN_COMMAND` - arbitrary (there's no capacity that's
+     actually "correct" for made-up test data), but it must be one of the real enum constants rather
+     than a fake placeholder value, so the column never holds anything the enum itself couldn't
+     produce going forward.
+  3. Alter the column to `NOT NULL`.
 - `HolderOperatingCapacity` enum, `FlightEntry.holderOperatingCapacity` field + constructor param,
   `FlightEntryRepository` read/write mapping.
 
