@@ -6,7 +6,6 @@ import com.bonney.hobbs.domain.AirfieldId;
 import com.bonney.hobbs.domain.FlightEntry;
 import com.bonney.hobbs.domain.FlightEntryId;
 import com.bonney.hobbs.domain.FlightTrackId;
-import com.bonney.hobbs.domain.HolderOperatingCapacity;
 import com.bonney.hobbs.domain.Logbook;
 import com.bonney.hobbs.domain.PilotId;
 import com.bonney.hobbs.dto.CreateFlightEntryDto;
@@ -43,7 +42,9 @@ public class FlightEntryEndpoint {
                 + "flight is just as valid as one derived from a recorded track. departureAirfieldId/"
                 + "arrivalAirfieldId are required, referencing the self-owned airfield reference table (see "
                 + "docs/plans/airfield-picker.md) - there is no free-text departurePlace/arrivalPlace fallback "
-                + "any more.",
+                + "any more. holderOperatingCapacity is required - the CAP804 role the logbook's owner played "
+                + "on this flight (see docs/plans/holder-operating-capacity.md); the response also carries its "
+                + "human-readable notation, derived server-side.",
         tags = {"FlightEntry"},
         requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateFlightEntryDto.class)),
         responses = {
@@ -64,9 +65,7 @@ public class FlightEntryEndpoint {
                 AirfieldId.from(request.getArrivalAirfieldId()),
                 PilotId.from(request.getPilotInCommandId()),
                 request.getCoPilotId() == null ? null : PilotId.from(request.getCoPilotId()),
-                // TODO(holder-operating-capacity chunk 2): read this from CreateFlightEntryDto once
-                // that field exists - see docs/plans/holder-operating-capacity.md.
-                HolderOperatingCapacity.PILOT_IN_COMMAND,
+                request.getHolderOperatingCapacity(),
                 request.getSingleEngineMinutes(),
                 request.getMultiEngineMinutes(),
                 request.getTotalMinutes(),

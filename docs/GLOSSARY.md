@@ -7,14 +7,29 @@ own vocabulary. Alphabetical within each section.
 ## Aviation / CAA terms (CAP804 / FCL.050)
 
 - **Co-pilot** - a second pilot on the flight who wasn't PIC (e.g. the non-flying pilot in a
-  multi-crew aircraft). Recorded today as a bare duration (`coPilotMinutes`) with no identity
-  attached - see [`FlightEntry.coPilotMinutes`](../src/main/java/com/bonney/hobbs/domain/FlightEntry.java).
+  multi-crew aircraft). Recorded as both a duration (`coPilotMinutes`) and, since
+  [`docs/plans/done/logbook-entries.md`](plans/done/logbook-entries.md), an identity
+  (`FlightEntry.coPilotId`, a `PilotId`) - see
+  [`FlightEntry`](../src/main/java/com/bonney/hobbs/domain/FlightEntry.java). Distinct from **Holder's
+  Operating Capacity**'s `SECOND_PILOT` (`P2`), which is about the logbook owner's own role, not who
+  else was on board.
 - **Cross-country** - time flown on a flight that meets the regulatory distance-from-departure
   threshold to count toward cross-country experience requirements.
-- **Dual** - time flown with an instructor on board, logged as `dualMinutes`.
+- **Dual** - time flown with an instructor on board, logged as `dualMinutes`. A student's progress
+  toward solo - not to be confused with **Holder's Operating Capacity**'s `PILOT_UNDER_TRAINING`
+  (`P.u/t`), which is the *role* a `PILOT_UNDER_TRAINING` flight is logged under, alongside this same
+  duration field.
 - **FSTD** - Flight Simulation Training Device - the regulatory term for what a "simulator" actually
   is. `SimulatorSession` is `hobbs`'s row for FSTD time, kept separate from `FlightEntry` because the
   real logbook has its own row shape for it.
+- **Holder's Operating Capacity** - the CAP804 column recording what role *the logbook's owner*
+  played on a specific flight: `PILOT_IN_COMMAND` (`P1`), `PILOT_IN_COMMAND_UNDER_SUPERVISION`
+  (`P1/S`), `SECOND_PILOT` (`P2`), `PILOT_UNDER_TRAINING` (`P.u/t`), `NAVIGATOR`/`NAVIGATOR_UNDER_SUPERVISION`/`NAVIGATOR_UNDER_TRAINING`
+  (`N.1`/`N.2`/`N.u/t`), `RADIOTELEPHONY_OPERATOR`/`RADIOTELEPHONY_OPERATOR_UNDER_TRAINING`
+  (`T.1`/`T.u/t`), or `FLIGHT_ENGINEER` (`E.1`). Distinct from **PIC** (who was Captain - a separate
+  column) and from **Dual** (a student's duration, not their role) - see
+  [`docs/plans/holder-operating-capacity.md`](plans/holder-operating-capacity.md) and
+  [`HolderOperatingCapacity`](../src/main/java/com/bonney/hobbs/domain/HolderOperatingCapacity.java).
 - **IFR** - Instrument Flight Rules - time flown by reference to instruments rather than visually.
 - **Instructor** - time flown while acting as instructor, logged as `instructorMinutes` (distinct
   from `dualMinutes`, which is the *student's* side of the same dual flight).
@@ -27,7 +42,9 @@ own vocabulary. Alphabetical within each section.
   records the instructor, and `pilotInCommandMinutes` records how much of the flight the *entry's
   owner* spent as PIC (zero, on a fully dual flight). In code, spell out `pilotInCommand` rather than
   abbreviating to `pic` - this includes renaming the pre-existing `picMinutes` field, not just the
-  new identity fields, so `pic*` doesn't survive anywhere as an inconsistent leftover.
+  new identity fields, so `pic*` doesn't survive anywhere as an inconsistent leftover. Not the same
+  question as **Holder's Operating Capacity**'s `PILOT_IN_COMMAND` (`P1`), which is about the
+  logbook owner's own role, not who was Captain.
 - **Total time** - the whole flight duration, `totalMinutes`. Every other duration field
   (single/multi-engine, night, IFR, cross-country, PIC, co-pilot, dual, instructor) is a subset or
   breakdown of this, not an addition to it.

@@ -21,6 +21,8 @@ public class FlightEntryMapper {
                 domain.getArrivalAirfieldId().value(),
                 domain.getPilotInCommandId().value(),
                 domain.getCoPilotId().map(id -> id.value()).orElse(null),
+                domain.getHolderOperatingCapacity().name(),
+                domain.getHolderOperatingCapacity().getNotation(),
                 domain.getSingleEngineMinutes(),
                 domain.getMultiEngineMinutes(),
                 domain.getTotalMinutes(),
