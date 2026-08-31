@@ -43,12 +43,13 @@ sweep found six of them had (see the note at the bottom of this file).
     [`docs/plans/done/new-entry-context-endpoint.md`](plans/done/new-entry-context-endpoint.md).
 13. **Split `CreateFlightEntryScreen`** (`hobbs-ui`, 2026-08-30) - see that repo's
     `docs/plans/split-create-flight-entry-screen.md`.
+14. **Holder's Operating Capacity** - the CAP804 role (`P1`, `P1/S`, `P2`, `P.u/t`, etc.) the
+    logbook's owner played on a flight, all three chunks (schema/domain, DTOs/mapper/glossary,
+    `hobbs-ui` picker + notation display) (2026-08-31) -
+    [`docs/plans/done/holder-operating-capacity.md`](plans/done/holder-operating-capacity.md).
 
 ## In flight - designed, not yet built
 
-- **Holder's Operating Capacity** - [`docs/plans/holder-operating-capacity.md`](plans/holder-operating-capacity.md).
-  Design merged 2026-08-31 ([hobbs#56](https://github.com/mojofunk5/hobbs/pull/56)); chunks 1-3
-  (schema/domain, DTOs/mapper/glossary, `hobbs-ui` rendering) not started.
 - **`FlightTrack` phase classification & `FlightEntry` derivation** -
   [`docs/plans/flight-track-derivation.md`](plans/flight-track-derivation.md) / `hobbs-ui`'s
   `docs/plans/flight-recording.md`. Design-only; depends on on-device recording, which itself
@@ -81,12 +82,10 @@ sweep found six of them had (see the note at the bottom of this file).
    layout and notation an OCR pass needs to parse. Per-column mapping onto the domain: date; aircraft
    type/registration (resolve against the aircraft reference table, same as the picker); Captain name
    (resolve or create a `Pilot`, same as the pilot picker); Holder's Operating Capacity notation
-   (parse against the `HolderOperatingCapacity` enum once
-   [`docs/plans/holder-operating-capacity.md`](plans/holder-operating-capacity.md) ships - this is
-   why that plan should land first); departure/arrival place and times (resolve against the airfield
-   reference table); and the duration/landings columns. Depends on holder-operating-capacity (above)
-   for a complete field mapping - could start before it lands but would need a follow-up pass to fill
-   in that one column.
+   (parse against the `HolderOperatingCapacity` enum -
+   [`docs/plans/done/holder-operating-capacity.md`](plans/done/holder-operating-capacity.md), shipped
+   2026-08-31); departure/arrival place and times (resolve against the airfield reference table); and
+   the duration/landings columns.
 4. **Merging two `Pilot` records** - no way to reconcile a self-registered account with an unclaimed
    record someone else already created for the same person.
 5. **`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId`** - `FlightEntry` has both

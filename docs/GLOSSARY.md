@@ -28,7 +28,7 @@ own vocabulary. Alphabetical within each section.
   (`N.1`/`N.2`/`N.u/t`), `RADIOTELEPHONY_OPERATOR`/`RADIOTELEPHONY_OPERATOR_UNDER_TRAINING`
   (`T.1`/`T.u/t`), or `FLIGHT_ENGINEER` (`E.1`). Distinct from **PIC** (who was Captain - a separate
   column) and from **Dual** (a student's duration, not their role) - see
-  [`docs/plans/holder-operating-capacity.md`](plans/holder-operating-capacity.md) and
+  [`docs/plans/done/holder-operating-capacity.md`](plans/done/holder-operating-capacity.md) and
   [`HolderOperatingCapacity`](../src/main/java/com/bonney/hobbs/domain/HolderOperatingCapacity.java).
 - **IFR** - Instrument Flight Rules - time flown by reference to instruments rather than visually.
 - **Instructor** - time flown while acting as instructor, logged as `instructorMinutes` (distinct

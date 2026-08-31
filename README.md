@@ -126,11 +126,14 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
   [`docs/plans/done/picker-recent-endpoints.md`](docs/plans/done/picker-recent-endpoints.md)).
 - **FlightEntry** - one row of the logbook: date, departure/arrival (each an `AirfieldId` + time -
   see **Airfield** below; no free-text place field), `pilotInCommandId`/`coPilotId` (both `PilotId`s -
-  see `docs/GLOSSARY.md`'s **PIC** entry for how the PIC can differ from the entry's owner), and
-  every duration (single/multi-engine, total, night, IFR, cross-country, PIC, co-pilot, dual,
-  instructor) plus day/night landings and remarks. All durations are stored in whole minutes, not
-  float hours, to avoid rounding drift across hundreds of entries. `flightTrackId` and `coPilotId`
-  are nullable and optional - see below.
+  see `docs/GLOSSARY.md`'s **PIC** entry for how the PIC can differ from the entry's owner),
+  `holderOperatingCapacity` (the CAP804 role the logbook's owner played on this flight - `P1`,
+  `P1/S`, `P2`, `P.u/t`, etc.; see
+  [`docs/plans/done/holder-operating-capacity.md`](docs/plans/done/holder-operating-capacity.md) and
+  `docs/GLOSSARY.md`'s entry of the same name), and every duration (single/multi-engine, total,
+  night, IFR, cross-country, PIC, co-pilot, dual, instructor) plus day/night landings and remarks.
+  All durations are stored in whole minutes, not float hours, to avoid rounding drift across
+  hundreds of entries. `flightTrackId` and `coPilotId` are nullable and optional - see below.
 - **Airfield** - reference data seeded from OurAirports' GB dataset
   ([`docs/plans/done/airfield-picker.md`](docs/plans/done/airfield-picker.md)), not pilot-submitted - there is
   no `POST /airfield`. name/ICAO code/municipality/country/region/coordinates/elevation/type, shared
@@ -159,9 +162,6 @@ flight / backlog). Short version:
 - Deriving a draft `FlightEntry` from a `FlightTrack` (departure/arrival detection, landing counting,
   night-time-from-sunset-tables, cross-country distance) - currently `FlightEntry` and `FlightTrack`
   exist as separate persisted things with no automatic bridge between them yet
-- The `HolderOperatingCapacity` CAP804 notation field on `FlightEntry` - design merged
-  ([`docs/plans/holder-operating-capacity.md`](docs/plans/holder-operating-capacity.md)),
-  implementation not started
 - Pagination/filtering on `GET /flight` (currently returns everything for the authenticated pilot)
 - `SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId` - `FlightEntry` now has
   `pilotInCommandId`/`coPilotId`, but the other two flight-domain classes don't reference a `PilotId`
