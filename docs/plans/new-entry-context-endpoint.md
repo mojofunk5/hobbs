@@ -1,6 +1,8 @@
 # Plan: `GET /flight-entry-context` - a single prefetch call for starting a new entry
 
-**Status:** Designed 2026-08-31, not yet implemented.
+**Status:** Designed 2026-08-31, implemented 2026-08-31 - backend
+([hobbs#53](https://github.com/mojofunk5/hobbs/pull/53)) and consumed by `hobbs-ui`'s
+create-flight-entry pickers ([hobbs-ui#36](https://github.com/mojofunk5/hobbs-ui/pull/36)).
 
 ## Context
 

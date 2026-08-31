@@ -17,6 +17,26 @@ This file provides guidance to Claude Code when working with code in this reposi
 - **Keep documentation in sync.** When making a significant change, update the relevant
   context/documentation files in the same change - this includes `CLAUDE.md`, `README.md`, and
   OpenAPI descriptions. Don't leave stale descriptions behind.
+- **Closing out a plan doc is part of the PR that finishes it, not a follow-up.** When a PR merges
+  the last chunk of a `docs/plans/*.md` doc (the doc's own Chunking section says which chunk is
+  last), that same PR also:
+  1. Updates the doc's `Status:` line to say it's implemented, with a link to the PR(s) that did it -
+     the pattern already used throughout this file and `docs/ROADMAP.md`.
+  2. Moves the doc from `docs/plans/` into `docs/plans/done/` (`git mv`, to preserve history) - see
+     `docs/plans/done/README.md` for the convention. A doc split across chunks in separate PRs stays
+     in `docs/plans/` (not `done/`) until the PR closing the *last* chunk moves it.
+  3. Fixes every link to that doc - other plan docs, `CLAUDE.md`, `README.md`, `docs/GLOSSARY.md`,
+     `docs/DECISIONS.md`, and any `hobbs-ui` doc linking to it by full GitHub URL - to point at its
+     new `docs/plans/done/` path.
+  4. Moves the corresponding line in `docs/ROADMAP.md` from "In flight"/"Backlog" into "Shipped".
+
+  This exists because a 2026-08-31 sweep found six plan docs across both repos silently claiming
+  "not yet implemented" for work that had been merged for up to two days, plus a `CLAUDE.md` bullet
+  describing three fully-shipped features as partially unmerged - see `docs/ROADMAP.md`'s own note
+  on that sweep. "Update docs in the same PR as the change" (the bullet above) had clearly not been
+  happening for plan-doc closeout specifically, even though it was happening for other kinds of
+  changes - treating closeout as its own explicit checklist, not a special case of the general rule,
+  is the fix.
 - **Design in a doc PR, merged and reviewed, before any implementation code is written.** For
   non-trivial work, the plan (a `docs/plans/*.md` doc, `docs/DECISIONS.md`/`docs/GLOSSARY.md`
   updates, backlog entries in this file/`README.md`) is its own PR, reviewed and merged on its own -
@@ -138,69 +158,39 @@ real time would intermittently fail whenever a second ticks over mid-test.
 
 ## Open work (not yet built)
 
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full, sequenced, cross-repo picture (shipped / in
+flight / backlog) - this section is just the short version. Keep the two in sync: update both in the
+same change, per this file's own "Keep documentation in sync" rule above.
+
 - **FlightTrack → FlightEntry derivation.** The actual "GPS did the logbook for you" logic - parsing
   a track into departure/arrival place+time, landing counts (including distinguishing touch-and-goes
   from full-stops), night time (needs sunset/sunrise tables per airfield/date), and cross-country
   distance. Currently the two are just linkable via `flightTrackId`; nothing populates one from the
-  other yet.
-- **`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId`.** `Pilot` and `Account` are
-  now split (see [`docs/plans/pilot-account-split.md`](docs/plans/pilot-account-split.md),
-  implemented), and the logbook-entries plan
-  ([`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)) gave `FlightEntry` real
-  `pilotInCommandId`/`coPilotId` fields referencing `Pilot` - but `SimulatorSession` and
-  `FlightTrack` don't reference a co-pilot's `PilotId` yet. A separate, later plan's decision
-  entirely.
+  other yet. Design doc: [`docs/plans/flight-track-derivation.md`](docs/plans/flight-track-derivation.md).
+- **`SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId`.** `FlightEntry` has real
+  `pilotInCommandId`/`coPilotId` fields (see [`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md),
+  implemented) - `SimulatorSession` and `FlightTrack` don't reference a co-pilot's `PilotId` yet. A
+  separate, later plan's decision entirely.
 - **Merging two `Pilot` records.** If someone registers their own account (a fresh `PilotId`) instead
   of using an invite that would've attached them to an unclaimed record someone else created, there's
   no way to reconcile the two afterwards. Deliberately out of scope for the pilot/account split.
-- **Pasted-in ids when adding a flight entry.** The logbook-entries plan
-  ([`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)) has `PilotId`/`AircraftId`/place
-  entered as raw text - workable for one real user's worth of test data, not for real use. Split into
-  three separate stories, since each has a different scoping/data-source question:
-  - **Picking a pilot you've flown with.** Backend done - see
-    [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md): `GET /pilot?search=` returns pilots
-    privacy-scoped by relationship (you only see someone if you created them or you've logged a
-    flight with them, plus yourself) - not a global list. `hobbs-ui`'s picker widget (chunk 2 of the
-    plan) not yet built. Aircraft doesn't need this scoping: it's already modelled as shared across
-    all pilots (see `AircraftEndpoint`'s doc comment).
-  - **Picking an aircraft.** Backend done - see
-    [`docs/plans/aircraft-picker.md`](docs/plans/aircraft-picker.md): `Aircraft` is now reference
-    data seeded/reconciled from OpenSky's aircraftDatabase.csv (the `import-aircraft` CLI
-    subcommand), not pilot-submitted - `POST /aircraft` is gone. `GET /aircraft?search=` (required,
-    minimum 2 characters, capped at 50 results) replaces the old unfiltered `GET /aircraft`.
-    `hobbs-ui`'s picker widget and Browse Aircraft page (chunk 4 of the plan) not yet built. Unlike
-    the pilot picker, there's no "add aircraft" affordance at all - gap-filling for aircraft missing
-    from the seed is a deliberately separate, not-yet-built later story (an admin-only
-    AeroDataBox-backed single-registration lookup - see the plan doc's Out of scope section).
-  - **Picking or registering a location (departure/arrival place).** See
-    [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md): a self-owned `Airfield`
-    reference table, seeded/reconciled from OurAirports' GB dataset (~1,200 active airfields), not
-    pilot-submitted - same reference-data pattern as the aircraft picker. Backend done, chunks 1-6
-    (on this feature branch, not yet merged): the `airfield` table + `AirfieldRepository`, the
-    re-runnable `import-airfields` CLI subcommand (`AirfieldImportJob`), `GET /airfield?search=`
-    (name substring or ICAO code prefix, empty search returns the full GB set alphabetically - no
-    minimum-length restriction, unlike aircraft's 2-char minimum, since ~1,200 rows is small enough),
-    recent-airfields ranking - `GET /airfield?search=` puts the calling pilot's own last 5 distinct
-    flown airfields first (most recent first, deduped via
-    `FlightEntryRepository#findRecentAirfieldIds`), everything else alphabetical after, using the
-    same session/auth pattern as `GET /pilot?search=` to get the caller's `PilotId` - and, as of
-    chunk 6, the completed `departurePlace`/`arrivalPlace` -> `AirfieldId` **contract**:
-    `departureAirfieldId`/`arrivalAirfieldId` are now required on `FlightEntry`, and the legacy
-    free-text `departurePlace`/`arrivalPlace` fields are gone entirely (dropped from the schema, the
-    domain, and both DTOs). The plan doc and the chunk-4 `docs/DECISIONS.md` entry originally left no
-    contract step scheduled (no safe way to backfill existing rows) - superseded once it was
-    confirmed no real `FlightEntry` rows exist in production yet, so there was nothing to backfill;
-    see `docs/DECISIONS.md`'s 2026-08-30 "chunk 6" entry for the full record of that override. The
-    picker searches by name or ICAO code with no pre-filled default - deliberately, since William is
-    a guide for what to build first, not a special case the UI hardcodes; no free-text "add an
-    airfield" fallback for now. `hobbs-ui`'s picker widget (chunk 6 of the plan, ships in lockstep
-    with this backend contract) is a separate repo, done on a feature branch there too, not yet
-    merged.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
-- **Logbook screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
+- **Holder's Operating Capacity.** Design merged
+  ([`docs/plans/holder-operating-capacity.md`](docs/plans/holder-operating-capacity.md)),
+  implementation not started - the CAP804 notation (`P1`, `P1/S`, `P2`, `P.u/t`, etc.) for what role
+  the logbook's owner played on a given flight, missing from `FlightEntry` entirely today.
+- **Photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui), not here - see that repo's
-  `docs/architecture-brief.md` for the roadmap.
+  `docs/architecture-brief.md` for the roadmap, or `docs/ROADMAP.md` here for the cross-repo view.
+  Logbook entry screens (add/view/list) already shipped there - it's specifically OCR,
+  GPS-recording, and iOS that remain.
+- **Keep READMEs and architecture docs current, both repos.** A 2026-08-31 sweep found six stale
+  plan-doc `Status:` lines and a fully-obsolete `CLAUDE.md` bullet here (describing the
+  pilot/aircraft/airfield pickers as partially unmerged, when all three were fully done in both
+  repos) - proof that "update docs in the same PR as the change" doesn't self-enforce. Treat this as
+  a standing item, not a one-off: periodically re-check `docs/ROADMAP.md`, this section, and both
+  repos' READMEs against actual merged PRs.
 
 The Flutter app (`hobbs-ui`) is built and deployed - live at
 [hobbs.bssd.co.uk](https://hobbs.bssd.co.uk). CI/deploy secrets for this repo are configured and

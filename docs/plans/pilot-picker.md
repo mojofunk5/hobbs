@@ -1,6 +1,8 @@
 # Plan: Picking a pilot you've flown with
 
-**Status:** Designed 2026-08-30. Chunk 1 (backend) implemented. Chunk 2 (`hobbs-ui`) not yet started.
+**Status:** Designed 2026-08-30, fully implemented. Chunk 1 (backend,
+[hobbs#9](https://github.com/mojofunk5/hobbs/pull/9)) 2026-08-30; chunk 2 (`hobbs-ui` picker
+widget, [hobbs-ui#13](https://github.com/mojofunk5/hobbs-ui/pull/13)) 2026-08-30.
 
 ## Context
 

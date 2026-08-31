@@ -1,6 +1,9 @@
 # Plan: Airfield reference data & picker
 
-**Status:** Designed 2026-08-30. Not yet implemented.
+**Status:** Designed 2026-08-30, implemented 2026-08-30 - backend chunks 1-6
+([hobbs#42](https://github.com/mojofunk5/hobbs/pull/42)-[46](https://github.com/mojofunk5/hobbs/pull/46),
+[#48](https://github.com/mojofunk5/hobbs/pull/48)) and the `hobbs-ui` picker widget
+([hobbs-ui#26](https://github.com/mojofunk5/hobbs-ui/pull/26)-[30](https://github.com/mojofunk5/hobbs-ui/pull/30)).
 
 ## Context
 
