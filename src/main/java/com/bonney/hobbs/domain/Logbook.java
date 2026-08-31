@@ -47,16 +47,17 @@ public class Logbook {
     public FlightEntry createEntry(PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
                                     LocalDate date, OffsetDateTime departureTime, OffsetDateTime arrivalTime,
                                     AirfieldId departureAirfieldId, AirfieldId arrivalAirfieldId,
-                                    PilotId pilotInCommandId, PilotId coPilotId, int singleEngineMinutes,
+                                    PilotId pilotInCommandId, PilotId coPilotId,
+                                    HolderOperatingCapacity holderOperatingCapacity, int singleEngineMinutes,
                                     int multiEngineMinutes, int totalMinutes, int nightMinutes, int ifrMinutes,
                                     int crossCountryMinutes, int pilotInCommandMinutes, int coPilotMinutes,
                                     int dualMinutes, int instructorMinutes, int dayLandings, int nightLandings,
                                     String remarks) {
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, flightTrackId, date,
                 departureTime, arrivalTime, departureAirfieldId, arrivalAirfieldId,
-                pilotInCommandId, coPilotId, singleEngineMinutes, multiEngineMinutes, totalMinutes, nightMinutes,
-                ifrMinutes, crossCountryMinutes, pilotInCommandMinutes, coPilotMinutes, dualMinutes,
-                instructorMinutes, dayLandings, nightLandings, remarks);
+                pilotInCommandId, coPilotId, holderOperatingCapacity, singleEngineMinutes, multiEngineMinutes,
+                totalMinutes, nightMinutes, ifrMinutes, crossCountryMinutes, pilotInCommandMinutes, coPilotMinutes,
+                dualMinutes, instructorMinutes, dayLandings, nightLandings, remarks);
         flightEntryRepository.save(entry);
         return entry;
     }

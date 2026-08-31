@@ -34,6 +34,7 @@ public class FlightEntry {
     private final AirfieldId arrivalAirfieldId;
     private final PilotId pilotInCommandId;
     private final PilotId coPilotId;
+    private final HolderOperatingCapacity holderOperatingCapacity;
     private final int singleEngineMinutes;
     private final int multiEngineMinutes;
     private final int totalMinutes;
@@ -51,8 +52,8 @@ public class FlightEntry {
     public FlightEntry(FlightEntryId id, PilotId pilotId, AircraftId aircraftId, FlightTrackId flightTrackId,
                         LocalDate date, OffsetDateTime departureTime, OffsetDateTime arrivalTime,
                         AirfieldId departureAirfieldId, AirfieldId arrivalAirfieldId, PilotId pilotInCommandId,
-                        PilotId coPilotId, int singleEngineMinutes, int multiEngineMinutes, int totalMinutes,
-                        int nightMinutes, int ifrMinutes, int crossCountryMinutes,
+                        PilotId coPilotId, HolderOperatingCapacity holderOperatingCapacity, int singleEngineMinutes,
+                        int multiEngineMinutes, int totalMinutes, int nightMinutes, int ifrMinutes, int crossCountryMinutes,
                         int pilotInCommandMinutes, int coPilotMinutes, int dualMinutes, int instructorMinutes,
                         int dayLandings, int nightLandings, String remarks) {
         // FlightTrackId is deliberately nullable here - GPS recording is an optional fast-path onto
@@ -73,6 +74,7 @@ public class FlightEntry {
         this.arrivalAirfieldId = arrivalAirfieldId;
         this.pilotInCommandId = pilotInCommandId;
         this.coPilotId = coPilotId;
+        this.holderOperatingCapacity = holderOperatingCapacity;
         this.singleEngineMinutes = singleEngineMinutes;
         this.multiEngineMinutes = multiEngineMinutes;
         this.totalMinutes = totalMinutes;
@@ -130,6 +132,10 @@ public class FlightEntry {
 
     public Optional<PilotId> getCoPilotId() {
         return Optional.ofNullable(coPilotId);
+    }
+
+    public HolderOperatingCapacity getHolderOperatingCapacity() {
+        return holderOperatingCapacity;
     }
 
     public int getSingleEngineMinutes() {

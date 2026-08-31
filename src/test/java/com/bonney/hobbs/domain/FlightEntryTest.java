@@ -43,7 +43,7 @@ class FlightEntryTest {
         assertThrows(IllegalArgumentException.class, () -> new FlightEntry(FlightEntryId.random(),
                 PilotId.random(), AircraftId.random(), null, LocalDate.now(), OffsetDateTime.now(),
                 OffsetDateTime.now(), AirfieldId.random(), AirfieldId.random(), PilotId.random(), null,
-                0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
+                HolderOperatingCapacity.PILOT_IN_COMMAND, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null));
     }
 
     @Test
@@ -67,15 +67,26 @@ class FlightEntryTest {
         AirfieldId arrivalAirfieldId = AirfieldId.random();
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), PilotId.random(), AircraftId.random(), null,
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), departureAirfieldId,
-                arrivalAirfieldId, PilotId.random(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                arrivalAirfieldId, PilotId.random(), null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
 
         assertThat(entry.getDepartureAirfieldId(), is(departureAirfieldId));
         assertThat(entry.getArrivalAirfieldId(), is(arrivalAirfieldId));
     }
 
+    @Test
+    void holderOperatingCapacityIsTheOneGiven() {
+        FlightEntry entry = new FlightEntry(FlightEntryId.random(), PilotId.random(), AircraftId.random(), null,
+                LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(),
+                AirfieldId.random(), PilotId.random(), null, HolderOperatingCapacity.PILOT_UNDER_TRAINING,
+                30, 0, 30, 0, 0, 0, 0, 0, 30, 0, 1, 0, null);
+
+        assertThat(entry.getHolderOperatingCapacity(), is(HolderOperatingCapacity.PILOT_UNDER_TRAINING));
+    }
+
     private FlightEntry anEntry(FlightEntryId id, FlightTrackId flightTrackId) {
         return new FlightEntry(id, PilotId.random(), AircraftId.random(), flightTrackId, LocalDate.now(),
                 OffsetDateTime.now(), OffsetDateTime.now(), AirfieldId.random(), AirfieldId.random(),
-                PilotId.random(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                PilotId.random(), null, HolderOperatingCapacity.PILOT_IN_COMMAND, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 }

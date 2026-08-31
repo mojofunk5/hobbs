@@ -93,7 +93,7 @@ class FlightEntryRepositoryTest {
         OffsetDateTime arrivalTime = OffsetDateTime.parse("2026-08-24T10:45:00Z");
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date,
                 departureTime, arrivalTime, airfieldId, secondAirfieldId, instructorPilotId, null,
-                45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
+                HolderOperatingCapacity.PILOT_UNDER_TRAINING, 45, 0, 45, 0, 0, 0, 0, 0, 45, 0, 3, 0, "Circuits");
 
         repository.save(entry);
 
@@ -103,6 +103,7 @@ class FlightEntryRepositoryTest {
         assertThat(found.getArrivalAirfieldId(), is(secondAirfieldId));
         assertThat(found.getPilotInCommandId(), is(instructorPilotId));
         assertThat(found.getCoPilotId(), is(Optional.empty()));
+        assertThat(found.getHolderOperatingCapacity(), is(HolderOperatingCapacity.PILOT_UNDER_TRAINING));
         assertThat(found.getTotalMinutes(), is(45));
         assertThat(found.getDualMinutes(), is(45));
         assertThat(found.getDayLandings(), is(3));
@@ -122,7 +123,7 @@ class FlightEntryRepositoryTest {
 
         FlightEntry entry = new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, track.getId(),
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), airfieldId, airfieldId, pilotId,
-                null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                null, HolderOperatingCapacity.PILOT_IN_COMMAND, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(entry);
 
         FlightEntry found = repository.findById(entry.getId()).orElseThrow();
@@ -151,7 +152,7 @@ class FlightEntryRepositoryTest {
         repository.save(anEntry(LocalDate.now(), "2026-08-24T10:00:00Z", "2026-08-24T10:30:00Z"));
         FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), airfieldId, airfieldId,
-                otherPilot.getId(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                otherPilot.getId(), null, HolderOperatingCapacity.PILOT_IN_COMMAND, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(othersEntry);
 
         List<FlightEntry> found = repository.findAllByPilotId(otherPilot.getId());
@@ -211,7 +212,8 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(otherPilot);
         FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), airfieldId,
-                secondAirfieldId, otherPilot.getId(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                secondAirfieldId, otherPilot.getId(), null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(othersEntry);
 
         assertThat(repository.findRecentAirfieldIds(pilotId, 5), is(List.of()));
@@ -260,7 +262,8 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(otherPilot);
         FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
                 LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), airfieldId,
-                secondAirfieldId, otherPilot.getId(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                secondAirfieldId, otherPilot.getId(), null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
         repository.save(othersEntry);
 
         assertThat(repository.findRecentAircraftIds(pilotId, 5), is(List.of()));
@@ -269,19 +272,21 @@ class FlightEntryRepositoryTest {
     private FlightEntry entryWithAircraft(LocalDate date, String departureTime, AircraftId entryAircraftId) {
         return new FlightEntry(FlightEntryId.random(), pilotId, entryAircraftId, null, date,
                 OffsetDateTime.parse(departureTime), OffsetDateTime.parse(departureTime).plusMinutes(30),
-                airfieldId, airfieldId, pilotId, null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                airfieldId, airfieldId, pilotId, null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 
     private FlightEntry entryWithAirfields(LocalDate date, String departureTime, AirfieldId departureAirfieldId,
                                             AirfieldId arrivalAirfieldId) {
         return new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date,
                 OffsetDateTime.parse(departureTime), OffsetDateTime.parse(departureTime).plusMinutes(30),
-                departureAirfieldId, arrivalAirfieldId, pilotId, null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                departureAirfieldId, arrivalAirfieldId, pilotId, null, HolderOperatingCapacity.PILOT_IN_COMMAND,
+                30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 
     private FlightEntry anEntry(LocalDate date, String departureTime, String arrivalTime) {
         return new FlightEntry(FlightEntryId.random(), pilotId, aircraftId, null, date,
                 OffsetDateTime.parse(departureTime), OffsetDateTime.parse(arrivalTime), airfieldId, airfieldId,
-                pilotId, null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+                pilotId, null, HolderOperatingCapacity.PILOT_IN_COMMAND, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 }
