@@ -1,6 +1,9 @@
 # Plan: Holder's Operating Capacity
 
-**Status:** Scoped 2026-08-31, not yet implemented.
+**Status:** Implemented 2026-08-31 - [hobbs#59](https://github.com/mojofunk5/hobbs/pull/59)
+(chunk 1: schema/domain), [hobbs#60](https://github.com/mojofunk5/hobbs/pull/60) (chunk 2:
+DTOs/mapper/glossary), [hobbs-ui#40](https://github.com/mojofunk5/hobbs-ui/pull/40) (chunk 3:
+picker + notation display).
 
 ## Context
 

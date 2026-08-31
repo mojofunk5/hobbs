@@ -176,10 +176,6 @@ same change, per this file's own "Keep documentation in sync" rule above.
   no way to reconcile the two afterwards. Deliberately out of scope for the pilot/account split.
 - **Editing/deleting a flight entry.** The logbook-entries plan only covers create/view/list -
   there's no way to fix a mistyped entry or remove one yet.
-- **Holder's Operating Capacity.** Design merged
-  ([`docs/plans/holder-operating-capacity.md`](docs/plans/holder-operating-capacity.md)),
-  implementation not started - the CAP804 notation (`P1`, `P1/S`, `P2`, `P.u/t`, etc.) for what role
-  the logbook's owner played on a given flight, missing from `FlightEntry` entirely today.
 - **Photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app** all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui), not here - see that repo's
   `docs/architecture-brief.md` for the roadmap, or `docs/ROADMAP.md` here for the cross-repo view.
