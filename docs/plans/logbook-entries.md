@@ -1,6 +1,9 @@
 # Plan: Logbook entries (add / view / list)
 
-**Status:** Scoped 2026-08-29, not yet implemented.
+**Status:** Scoped 2026-08-29, implemented 2026-08-29 - chunk 1 (backend PIC/co-pilot ids,
+[hobbs#7](https://github.com/mojofunk5/hobbs/pull/7)) and chunks 2-4 (`hobbs-ui` add/view/list
+screens, [hobbs-ui#8](https://github.com/mojofunk5/hobbs-ui/pull/8)/
+[#9](https://github.com/mojofunk5/hobbs-ui/pull/9)/[#10](https://github.com/mojofunk5/hobbs-ui/pull/10)).
 
 ## Context
 

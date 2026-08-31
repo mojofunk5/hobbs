@@ -1,6 +1,8 @@
 # Plan: Split `HobbsApplicationIntegrationTest` by endpoint
 
-**Status:** Designed 2026-08-30, not yet implemented.
+**Status:** Designed 2026-08-30, implemented 2026-08-30 - all 5 chunks
+([hobbs#13](https://github.com/mojofunk5/hobbs/pull/13)-[16](https://github.com/mojofunk5/hobbs/pull/16),
+[#19](https://github.com/mojofunk5/hobbs/pull/19)).
 
 ## Context
 

@@ -153,26 +153,26 @@ Based on the UK CAA/EASA standard logbook format (CAP804 = FCL.050 template):
 
 ## Not yet built
 
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full, sequenced, cross-repo picture (shipped / in
+flight / backlog). Short version:
+
 - Deriving a draft `FlightEntry` from a `FlightTrack` (departure/arrival detection, landing counting,
   night-time-from-sunset-tables, cross-country distance) - currently `FlightEntry` and `FlightTrack`
   exist as separate persisted things with no automatic bridge between them yet
+- The `HolderOperatingCapacity` CAP804 notation field on `FlightEntry` - design merged
+  ([`docs/plans/holder-operating-capacity.md`](docs/plans/holder-operating-capacity.md)),
+  implementation not started
 - Pagination/filtering on `GET /flight` (currently returns everything for the authenticated pilot)
 - `SimulatorSession`/`FlightTrack` referencing a co-pilot's `PilotId` - `FlightEntry` now has
   `pilotInCommandId`/`coPilotId`, but the other two flight-domain classes don't reference a `PilotId`
   for a co-pilot yet
 - Merging two `Pilot` records (e.g. someone who registered their own account instead of using an
   invite that would've attached them to an unclaimed record someone else already created)
-- Pasted-in ids when adding a flight entry - `PilotId`/`AircraftId`/`AirfieldId` were entered as raw
-  text originally (see [`docs/plans/logbook-entries.md`](docs/plans/logbook-entries.md)). Split into
-  three stories in `CLAUDE.md`'s Open work, backend now done for all three - see
-  [`docs/plans/pilot-picker.md`](docs/plans/pilot-picker.md),
-  [`docs/plans/aircraft-picker.md`](docs/plans/aircraft-picker.md), and
-  [`docs/plans/airfield-picker.md`](docs/plans/airfield-picker.md) - `hobbs-ui`'s picker widgets are
-  the remaining piece for each
-- Editing or deleting a flight entry - only creating, viewing, and listing are planned for now
-- Logbook entry screens, photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app all live in
+- Editing or deleting a flight entry - only creating, viewing, and listing are built so far
+- Photo-to-logbook OCR, GPS-recording-to-logbook, and the iOS app all live in
   [`hobbs-ui`](https://github.com/mojofunk5/hobbs-ui) - see that repo's `docs/architecture-brief.md`
-  for the roadmap
+  for the roadmap. Logbook entry screens (add/view/list) and all three reference-data pickers
+  (pilot/aircraft/airfield) already shipped there.
 
 See [`docs/GLOSSARY.md`](docs/GLOSSARY.md) for aviation and domain terms (PIC, dual, unclaimed pilot,
 etc.), and `docs/DECISIONS.md` for a dated record of significant architecture/engineering decisions

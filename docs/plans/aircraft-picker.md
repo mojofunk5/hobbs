@@ -1,8 +1,10 @@
 # Plan: Aircraft reference data & picker
 
-**Status:** Designed 2026-08-30. Backend (chunks 1-3: migration, import job, search endpoint)
-implemented the same day - see hobbs#32/#33/#34. `hobbs-ui` (chunk 4: picker widget + Browse
-Aircraft page) not yet built.
+**Status:** Designed 2026-08-30, fully implemented. Backend (chunks 1-3: migration, import job,
+search endpoint) 2026-08-30 - see [hobbs#32](https://github.com/mojofunk5/hobbs/pull/32)/
+[#33](https://github.com/mojofunk5/hobbs/pull/33)/[#34](https://github.com/mojofunk5/hobbs/pull/34).
+`hobbs-ui` (chunk 4: picker widget + Browse Aircraft page)
+[hobbs-ui#24](https://github.com/mojofunk5/hobbs-ui/pull/24), also 2026-08-30.
 
 ## Context
 
