@@ -130,11 +130,17 @@ public interface HobbsClient {
     @RequestLine("GET /aircraft?search={search}&registrationOnly={registrationOnly}")
     List<AircraftDto> searchAircraft(@Param("search") String search, @Param("registrationOnly") boolean registrationOnly);
 
+    @RequestLine("GET /aircraft/recent")
+    List<AircraftDto> recentAircraft();
+
     @RequestLine("GET /airfield")
     List<AirfieldDto> searchAirfields();
 
     @RequestLine("GET /airfield?search={search}")
     List<AirfieldDto> searchAirfields(@Param("search") String search);
+
+    @RequestLine("GET /airfield/recent")
+    List<AirfieldDto> recentAirfields();
 
     @RequestLine("POST /flight")
     FlightEntryDto createFlightEntry(CreateFlightEntryDto request);

@@ -144,7 +144,7 @@ class LogbookTest {
         PilotId callerId = PilotId.random();
         List<Airfield> expected = List.of(anAirfield());
         when(airfieldRepository.search("sherburn")).thenReturn(expected);
-        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT)).thenReturn(List.of());
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_ITEMS_LIMIT)).thenReturn(List.of());
 
         List<Airfield> result = logbook.searchAirfields(callerId, "sherburn");
 
@@ -156,7 +156,7 @@ class LogbookTest {
         PilotId callerId = PilotId.random();
         List<Airfield> expected = List.of(anAirfield());
         when(airfieldRepository.findAll()).thenReturn(expected);
-        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT)).thenReturn(List.of());
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_ITEMS_LIMIT)).thenReturn(List.of());
 
         assertThat(logbook.searchAirfields(callerId, null), is(expected));
         assertThat(logbook.searchAirfields(callerId, ""), is(expected));
@@ -171,7 +171,7 @@ class LogbookTest {
         Airfield leeds = anAirfield(AirfieldId.random(), "EGNM", "Leeds Bradford Airport");
         // Alphabetically alpha, leeds, sherburn - but sherburn was flown most recently.
         when(airfieldRepository.findAll()).thenReturn(List.of(alpha, leeds, sherburn));
-        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT))
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_ITEMS_LIMIT))
                 .thenReturn(List.of(sherburn.getId()));
 
         List<Airfield> result = logbook.searchAirfields(callerId, null);
@@ -185,12 +185,64 @@ class LogbookTest {
         Airfield alpha = anAirfield(AirfieldId.random(), "EGAA", "Alpha Airfield");
         AirfieldId notMatched = AirfieldId.random();
         when(airfieldRepository.search("alpha")).thenReturn(List.of(alpha));
-        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_AIRFIELD_LIMIT))
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_ITEMS_LIMIT))
                 .thenReturn(List.of(notMatched));
 
         List<Airfield> result = logbook.searchAirfields(callerId, "alpha");
 
         assertThat(result, is(List.of(alpha)));
+    }
+
+    @Test
+    void recentAirfieldsReturnsTheCallersRecentlyFlownAirfieldsMostRecentFirst() {
+        PilotId callerId = PilotId.random();
+        Airfield sherburn = anAirfield(AirfieldId.random(), "EGCJ", "Sherburn-in-Elmet Airfield");
+        Airfield leeds = anAirfield(AirfieldId.random(), "EGNM", "Leeds Bradford Airport");
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_ITEMS_LIMIT))
+                .thenReturn(List.of(sherburn.getId(), leeds.getId()));
+        when(airfieldRepository.findById(sherburn.getId())).thenReturn(Optional.of(sherburn));
+        when(airfieldRepository.findById(leeds.getId())).thenReturn(Optional.of(leeds));
+
+        List<Airfield> result = logbook.recentAirfields(callerId);
+
+        assertThat(result, is(List.of(sherburn, leeds)));
+    }
+
+    @Test
+    void recentAirfieldsSilentlyDropsAnIdWhoseAirfieldHasSinceBeenRemoved() {
+        PilotId callerId = PilotId.random();
+        AirfieldId removedId = AirfieldId.random();
+        when(flightEntryRepository.findRecentAirfieldIds(callerId, Logbook.RECENT_ITEMS_LIMIT))
+                .thenReturn(List.of(removedId));
+        when(airfieldRepository.findById(removedId)).thenReturn(Optional.empty());
+
+        assertThat(logbook.recentAirfields(callerId), is(List.of()));
+    }
+
+    @Test
+    void recentAircraftReturnsTheCallersRecentlyFlownAircraftMostRecentFirst() {
+        PilotId callerId = PilotId.random();
+        Aircraft cessna = anAircraft(AircraftId.random(), "G-ABCD");
+        Aircraft warrior = anAircraft(AircraftId.random(), "G-EFGH");
+        when(flightEntryRepository.findRecentAircraftIds(callerId, Logbook.RECENT_ITEMS_LIMIT))
+                .thenReturn(List.of(cessna.getId(), warrior.getId()));
+        when(aircraftRepository.findById(cessna.getId())).thenReturn(Optional.of(cessna));
+        when(aircraftRepository.findById(warrior.getId())).thenReturn(Optional.of(warrior));
+
+        List<Aircraft> result = logbook.recentAircraft(callerId);
+
+        assertThat(result, is(List.of(cessna, warrior)));
+    }
+
+    @Test
+    void recentAircraftSilentlyDropsAnIdWhoseAircraftHasSinceBeenRemoved() {
+        PilotId callerId = PilotId.random();
+        AircraftId removedId = AircraftId.random();
+        when(flightEntryRepository.findRecentAircraftIds(callerId, Logbook.RECENT_ITEMS_LIMIT))
+                .thenReturn(List.of(removedId));
+        when(aircraftRepository.findById(removedId)).thenReturn(Optional.empty());
+
+        assertThat(logbook.recentAircraft(callerId), is(List.of()));
     }
 
     private Airfield anAirfield() {
@@ -200,6 +252,11 @@ class LogbookTest {
     private Airfield anAirfield(AirfieldId id, String icaoCode, String name) {
         return new Airfield(id, icaoCode, name, "Somewhere", "GB", "GB-ENG", 53.7883, -1.2225, 26,
                 "small_airport", "ourairports", id.value().toString());
+    }
+
+    private Aircraft anAircraft(AircraftId id, String registration) {
+        return new Aircraft(id, registration, "Cessna", "152", EngineCategory.SINGLE_ENGINE,
+                null, null, null, null, null, null, null, null);
     }
 
     private FlightEntry aFlightEntry(FlightEntryId id) {

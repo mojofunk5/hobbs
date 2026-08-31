@@ -25,6 +25,8 @@ class FlightEntryRepositoryTest {
     private PilotId pilotId;
     private PilotId instructorPilotId;
     private AircraftId aircraftId;
+    private AircraftId secondAircraftId;
+    private AircraftId thirdAircraftId;
     private AirfieldId airfieldId;
     private AirfieldId secondAirfieldId;
     private AirfieldId thirdAirfieldId;
@@ -51,10 +53,21 @@ class FlightEntryRepositoryTest {
         new PilotRepository(dsl).save(instructor);
         instructorPilotId = instructor.getId();
 
+        AircraftRepository aircraftRepository = new AircraftRepository(dsl);
         Aircraft aircraft = new Aircraft(AircraftId.random(), "G-ABCD", "Cessna", "152", EngineCategory.SINGLE_ENGINE,
                 null, null, null, null, null, null, null, null);
-        new AircraftRepository(dsl).save(aircraft);
+        aircraftRepository.save(aircraft);
         aircraftId = aircraft.getId();
+
+        Aircraft secondAircraft = new Aircraft(AircraftId.random(), "G-EFGH", "Piper", "Warrior",
+                EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null);
+        aircraftRepository.save(secondAircraft);
+        secondAircraftId = secondAircraft.getId();
+
+        Aircraft thirdAircraft = new Aircraft(AircraftId.random(), "G-IJKL", "Robin", "DR400",
+                EngineCategory.SINGLE_ENGINE, null, null, null, null, null, null, null, null);
+        aircraftRepository.save(thirdAircraft);
+        thirdAircraftId = thirdAircraft.getId();
 
         AirfieldRepository airfieldRepository = new AirfieldRepository(dsl);
         Airfield airfield = new Airfield(AirfieldId.random(), "EGCM", "Manchester Barton Airport", "Manchester",
@@ -202,6 +215,61 @@ class FlightEntryRepositoryTest {
         repository.save(othersEntry);
 
         assertThat(repository.findRecentAirfieldIds(pilotId, 5), is(List.of()));
+    }
+
+    @Test
+    void findRecentAircraftIdsReturnsDistinctIdsMostRecentlyFlownFirst() {
+        repository.save(entryWithAircraft(LocalDate.of(2026, 8, 1), "2026-08-01T09:00:00Z", secondAircraftId));
+        repository.save(entryWithAircraft(LocalDate.of(2026, 8, 24), "2026-08-24T09:00:00Z", aircraftId));
+
+        List<AircraftId> recent = repository.findRecentAircraftIds(pilotId, 5);
+
+        assertThat(recent, contains(aircraftId, secondAircraftId));
+    }
+
+    @Test
+    void findRecentAircraftIdsDoesNotCountTheSameAircraftTwiceForRepeatedFlights() {
+        for (int i = 0; i < 3; i++) {
+            repository.save(entryWithAircraft(LocalDate.of(2026, 8, 20 + i), "2026-08-2" + i + "T09:00:00Z", aircraftId));
+        }
+        repository.save(entryWithAircraft(LocalDate.of(2026, 8, 1), "2026-08-01T09:00:00Z", secondAircraftId));
+
+        List<AircraftId> recent = repository.findRecentAircraftIds(pilotId, 5);
+
+        assertThat(recent, contains(aircraftId, secondAircraftId));
+    }
+
+    @Test
+    void findRecentAircraftIdsIsCappedAtTheGivenLimit() {
+        repository.save(entryWithAircraft(LocalDate.of(2026, 8, 24), "2026-08-24T09:00:00Z", aircraftId));
+        repository.save(entryWithAircraft(LocalDate.of(2026, 8, 1), "2026-08-01T09:00:00Z", secondAircraftId));
+
+        List<AircraftId> recent = repository.findRecentAircraftIds(pilotId, 1);
+
+        assertThat(recent, contains(aircraftId));
+    }
+
+    @Test
+    void findRecentAircraftIdsReturnsEmptyWhenPilotHasNoEntries() {
+        assertThat(repository.findRecentAircraftIds(pilotId, 5), is(List.of()));
+    }
+
+    @Test
+    void findRecentAircraftIdsIsScopedToTheGivenPilot() {
+        Pilot otherPilot = new Pilot(PilotId.random(), "Someone Else", null);
+        new PilotRepository(dsl).save(otherPilot);
+        FlightEntry othersEntry = new FlightEntry(FlightEntryId.random(), otherPilot.getId(), aircraftId, null,
+                LocalDate.now(), OffsetDateTime.now(), OffsetDateTime.now(), airfieldId,
+                secondAirfieldId, otherPilot.getId(), null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
+        repository.save(othersEntry);
+
+        assertThat(repository.findRecentAircraftIds(pilotId, 5), is(List.of()));
+    }
+
+    private FlightEntry entryWithAircraft(LocalDate date, String departureTime, AircraftId entryAircraftId) {
+        return new FlightEntry(FlightEntryId.random(), pilotId, entryAircraftId, null, date,
+                OffsetDateTime.parse(departureTime), OffsetDateTime.parse(departureTime).plusMinutes(30),
+                airfieldId, airfieldId, pilotId, null, 30, 0, 30, 0, 0, 0, 30, 0, 0, 0, 1, 0, null);
     }
 
     private FlightEntry entryWithAirfields(LocalDate date, String departureTime, AirfieldId departureAirfieldId,

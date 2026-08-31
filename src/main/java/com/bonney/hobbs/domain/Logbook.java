@@ -25,11 +25,13 @@ public class Logbook {
     private static final int MAX_AIRCRAFT_SEARCH_RESULTS = 50;
 
     /**
-     * "Last N" distinct recently-flown airfields surfaced first on GET /airfield?search= - suggested
-     * value from docs/plans/airfield-picker.md's Confirmed decisions, flagged there as not confirmed
-     * and easy to tune later since it's not a schema decision.
+     * "Last N" distinct recently-flown items - both the airfields/aircraft surfaced first on
+     * GET /airfield?search=/GET /aircraft?search= (ranking) and the full result of
+     * GET /airfield/recent/GET /aircraft/recent (see docs/plans/picker-recent-endpoints.md).
+     * Suggested value from docs/plans/airfield-picker.md's Confirmed decisions, flagged there as not
+     * confirmed and easy to tune later since it's not a schema decision.
      */
-    static final int RECENT_AIRFIELD_LIMIT = 5;
+    static final int RECENT_ITEMS_LIMIT = 5;
 
     private final FlightEntryRepository flightEntryRepository;
     private final AircraftRepository aircraftRepository;
@@ -82,7 +84,7 @@ public class Logbook {
      * this doesn't need aircraft's "must type 2+ characters" restriction (see
      * docs/plans/airfield-picker.md's Confirmed decisions).
      *
-     * <p>Results are then re-ordered to put the calling pilot's own last {@link #RECENT_AIRFIELD_LIMIT}
+     * <p>Results are then re-ordered to put the calling pilot's own last {@link #RECENT_ITEMS_LIMIT}
      * distinct flown airfields first (most recently flown first, deduped via
      * {@link FlightEntryRepository#findRecentAirfieldIds}), everything else alphabetical after -
      * applies whether {@code search} is empty or not, so typing "S" still surfaces a recently-flown
@@ -94,7 +96,7 @@ public class Logbook {
                 ? airfieldRepository.findAll()
                 : airfieldRepository.search(search);
 
-        List<AirfieldId> recentAirfieldIds = flightEntryRepository.findRecentAirfieldIds(callerId, RECENT_AIRFIELD_LIMIT);
+        List<AirfieldId> recentAirfieldIds = flightEntryRepository.findRecentAirfieldIds(callerId, RECENT_ITEMS_LIMIT);
         if (recentAirfieldIds.isEmpty()) {
             return matches;
         }
@@ -113,5 +115,34 @@ public class Logbook {
         }
         ordered.addAll(remaining.values());
         return ordered;
+    }
+
+    /**
+     * Backs GET /airfield/recent (see docs/plans/picker-recent-endpoints.md) - the calling pilot's
+     * own last {@link #RECENT_ITEMS_LIMIT} distinct flown airfields, most recently flown first. A
+     * right-sized alternative to {@link #searchAirfields} with an empty search for callers (the
+     * hobbs-ui airfield picker's on-focus load) that only want this, not the whole ~1,200-row table.
+     * An id whose airfield has since been removed from the reference table is silently dropped.
+     */
+    public List<Airfield> recentAirfields(PilotId callerId) {
+        return flightEntryRepository.findRecentAirfieldIds(callerId, RECENT_ITEMS_LIMIT).stream()
+                .map(airfieldRepository::findById)
+                .flatMap(Optional::stream)
+                .toList();
+    }
+
+    /**
+     * Backs GET /aircraft/recent (see docs/plans/picker-recent-endpoints.md) - the calling pilot's
+     * own last {@link #RECENT_ITEMS_LIMIT} distinct flown aircraft, most recently flown first. Gives
+     * the hobbs-ui aircraft picker an on-focus browse affordance it never had before, since
+     * {@link #searchAircraft} has no empty-search "load everything" mode to reuse (aircraft's
+     * ~600k-row scale rules that out). An id whose aircraft has since been removed from the
+     * reference table is silently dropped.
+     */
+    public List<Aircraft> recentAircraft(PilotId callerId) {
+        return flightEntryRepository.findRecentAircraftIds(callerId, RECENT_ITEMS_LIMIT).stream()
+                .map(aircraftRepository::findById)
+                .flatMap(Optional::stream)
+                .toList();
     }
 }
