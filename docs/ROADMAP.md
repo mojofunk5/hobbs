@@ -60,6 +60,11 @@ sweep found six of them had (see the note at the bottom of this file).
 - **Extract a shared `TypeaheadPicker<T>` widget** (`hobbs-ui`) - `docs/plans/typeahead-picker.md`.
   The on-focus-loading behaviour it was revised for is already shipped directly in the three
   hand-rolled pickers; the generic extraction itself isn't done.
+- **Show Pooleys notation in the Holder's Operating Capacity picker** -
+  [`docs/plans/capacity-picker-notation.md`](plans/capacity-picker-notation.md). The
+  `holder-operating-capacity.md` picker shows humanized enum names instead of the CAA shorthand
+  (`P1`, `P.u/t`, etc.) it was meant to; fix serves the notation via `GET /flight-entry-context`
+  instead of duplicating the notation table into `hobbs-ui`.
 
 ## Backlog, in rough priority order
 
